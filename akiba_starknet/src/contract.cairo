@@ -20,10 +20,13 @@ mod SaverContract {
     use array::ArrayTrait;
     use starknet::ContractAddress;
     use core::debug::PrintTrait;
+    use openzeppelin::token::erc721::{ERC721};
+    use openzeppelin::token::erc721::interface::{IERC721};
 
      
     #[storage]
     struct Storage {
+        owner:ContractAddress,
         savers: LegacyMap::<ContractAddress, Saver>,
         saves: LegacyMap::<felt252, Save>,
         rewards: LegacyMap::<felt252, Reward>,
@@ -63,17 +66,40 @@ mod SaverContract {
         reward_uri: felt252, 
         redeemed:bool,
         rewarded_user:ContractAddress,
-
     }
+
+    #[constructor]
+    fn constructor(ref self: ContractState,owner:ContractAddress,name: felt252,symbol:felt252) {
+        
+        let mut unsafe_state = ERC721::unsafe_new_contract_state();
+        ERC721::InternalImpl::initializer(ref unsafe_state,name,symbol);
+        self.owner.write(owner);
+        
+    }
+
 
     #[external(v0)]
     #[generate_trait]
     impl SaverContract of ISaverContract {
+        
+        fn name(self: @ContractState) -> felt252 {
+            let unsafe_state = ERC721::unsafe_new_contract_state();
+            ERC721::ERC721MetadataImpl::name(@unsafe_state)
+        }
+
+        fn symbol(self: @ContractState) -> felt252 {
+            let unsafe_state = ERC721::unsafe_new_contract_state();
+            ERC721::ERC721MetadataImpl::symbol(@unsafe_state)
+            }
+
         fn set_saver(ref self: ContractState,value:Saver,key:ContractAddress){
             self._set_saver(value,key);
         }
-        fn set_save(ref self: ContractState,value:Save,key: felt252){
+        fn set_save(ref self: ContractState,value:Save,key: felt252,recepient:ContractAddress,  token_id: u256){
             self._set_save(value,key);
+            let mut unsafe_state = ERC721::unsafe_new_contract_state();
+            ERC721::InternalImpl::_mint(ref unsafe_state,recepient,token_id);
+
         }
         fn set_reward(ref self: ContractState,value:Reward,key: felt252){
             self._set_reward(value,key);
@@ -95,6 +121,21 @@ mod SaverContract {
             reward
         }
 
+        fn token_uri(self: @ContractState,token_id: u256) -> felt252 {
+            let unsafe_state = ERC721::unsafe_new_contract_state();
+            ERC721::ERC721MetadataImpl::token_uri(@unsafe_state,token_id)
+        
+            }
+
+        fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
+                let unsafe_state = ERC721::unsafe_new_contract_state();
+                ERC721::ERC721Impl::balance_of(@unsafe_state,account)
+            }
+
+        fn owner_of(self: @ContractState, token_id: u256) -> ContractAddress {
+            let unsafe_state = ERC721::unsafe_new_contract_state();
+            ERC721::ERC721Impl::owner_of(@unsafe_state,token_id)
+            }
 
 
     }
