@@ -5,8 +5,8 @@ use akiba_starknet::contract::SaverContract::{Saver,Save,Reward,ContractAddress}
 trait ISaverContract<TContractState> {
 
     fn set_saver(ref self: TContractState, saver:Saver, key:ContractAddress);
-    fn set_save(ref self: TContractState, save:Save, key: felt252);
-    fn set_reward(ref self: TContractState, reward:Reward, key: felt252);
+    fn set_save(ref self: TContractState, save:Save, key: u256);
+    fn set_reward(ref self: TContractState, reward:Reward, key: u256);
 
     fn get_saver(self: @TContractState, key:ContractAddress) ->  Saver;
     fn get_save(self: @TContractState, key:felt252) ->  Save;
@@ -16,9 +16,11 @@ trait ISaverContract<TContractState> {
 
 #[starknet::contract]
 mod SaverContract {
+
     use poseidon::poseidon_hash_span;
     use array::ArrayTrait;
     use starknet::ContractAddress;
+    use starknet::get_caller_address;
     use core::debug::PrintTrait;
     use openzeppelin::token::erc721::{ERC721};
     use openzeppelin::token::erc721::interface::{IERC721};
@@ -28,32 +30,30 @@ mod SaverContract {
     struct Storage {
         owner:ContractAddress,
         savers: LegacyMap::<ContractAddress, Saver>,
-        saves: LegacyMap::<felt252, Save>,
-        rewards: LegacyMap::<felt252, Reward>,
-  
+        saves: LegacyMap::<u256, Save>,
+        rewards: LegacyMap::<u256, Reward>,
+        save_id_count:u256,
+        rewards_id_count:u256,
+        akibas_earnings:u256,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
     struct Saver {
-        first_name: felt252,
-        last_name: felt252,
-        phone_number: felt252,
-        email: felt252,
+
         address: ContractAddress,
-        secret_word : felt252,
-        total_saves_amount : u128,
-        total_amount_earned : u128,
+        total_saves_amount : u256,
+        total_amount_earned : u256,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
     struct Save {
-        save_id: u64,
+        save_id: u256,
         saver_adress: ContractAddress,
-        save_amount: u64,
-        token_uri: felt252,
-        save_earnings: u64,
-        save_start:u64,
-        save_end:u64,
+        save_amount: u256,
+        token_id: u256,
+        save_earnings: u128,
+        save_start:u256,
+        save_end:u256,
         save_period:felt252,
         witdraw_penalty:u64,
     }
@@ -62,9 +62,10 @@ mod SaverContract {
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
     struct Reward {
-        reward_id: felt252, 
+        reward_id: u256, 
         reward_uri: felt252, 
         redeemed:bool,
+        reward_type:felt252,
         rewarded_user:ContractAddress,
     }
 
@@ -73,7 +74,10 @@ mod SaverContract {
         
         let mut unsafe_state = ERC721::unsafe_new_contract_state();
         ERC721::InternalImpl::initializer(ref unsafe_state,name,symbol);
-        self.owner.write(owner);
+
+        // Set contract deployer as the owner
+        let contract_deployer:ContractAddress = get_caller_address();
+        self.owner.write(contract_deployer);
         
     }
 
@@ -95,31 +99,6 @@ mod SaverContract {
         fn set_saver(ref self: ContractState,value:Saver,key:ContractAddress){
             self._set_saver(value,key);
         }
-        fn set_save(ref self: ContractState,value:Save,key: felt252,recepient:ContractAddress,  token_id: u256){
-            self._set_save(value,key);
-            let mut unsafe_state = ERC721::unsafe_new_contract_state();
-            ERC721::InternalImpl::_mint(ref unsafe_state,recepient,token_id);
-
-        }
-        fn set_reward(ref self: ContractState,value:Reward,key: felt252){
-            self._set_reward(value,key);
-        }
-
-        fn get_saver(self: @ContractState, key: ContractAddress) -> Saver {
-            let saver = self.savers.read(key);
-            saver
-            
-        }
-
-        fn get_save(self: @ContractState, key: felt252) -> Save{
-            let save = self.saves.read(key);
-            save
-        }
-
-        fn get_reward(self: @ContractState, key: felt252) -> Reward{
-            let reward = self.rewards.read(key);
-            reward
-        }
 
         fn token_uri(self: @ContractState,token_id: u256) -> felt252 {
             let unsafe_state = ERC721::unsafe_new_contract_state();
@@ -138,6 +117,103 @@ mod SaverContract {
             }
 
 
+        fn set_save(ref self: ContractState,value:Save,key: u256,token_id: u256){
+            let recepient = get_caller_address();
+            let mut unsafe_state = ERC721::unsafe_new_contract_state();
+            ERC721::InternalImpl::_mint(ref unsafe_state,recepient,token_id);
+
+            let mut saver = self.savers.read(recepient);
+            let saver_address = saver.address;
+
+            if saver_address == recepient {
+                saver.total_saves_amount += value.save_amount;
+                self._set_saver(saver,recepient);
+            } else {
+
+                let saver = Saver {
+                    address: recepient, total_saves_amount: value.save_amount, total_amount_earned: 0
+                    };
+                self._set_saver(saver,recepient);
+            }
+
+            self._set_save(value,key);
+        }
+
+        fn set_reward(ref self: ContractState,value:Reward,key: u256){
+            self._set_reward(value,key);
+      
+        }
+
+        fn withdraw_save(ref self: ContractState,save_id:u256,end_date:u256){
+            let save_to_withdraw  = self.saves.read(save_id);
+            let recepient = get_caller_address();
+            let mut withdrawing_saver = self.savers.read(recepient);
+
+            let save_owner = self.owner_of(save_to_withdraw.token_id);
+
+
+            assert(recepient == save_owner,'Error: WRONG_REQUESTER');
+
+            let save_end_date = save_to_withdraw.save_end;
+
+            if save_end_date < end_date {
+                // burn the token
+                // petrform a transfer
+                withdrawing_saver.total_saves_amount -= save_to_withdraw.save_amount;
+                self._set_saver(withdrawing_saver,recepient);
+
+                let reward_id = self.rewards_id_count.read() + 1;
+                self.rewards_id_count.write(reward_id);
+                let reward = Reward {
+                    reward_id: reward_id, reward_uri: 'amnesty', redeemed: false,reward_type:'amnesty',rewarded_user:recepient
+                    };
+                self._set_reward(reward,reward_id);
+
+
+            } else{
+
+                let difference = end_date - save_end_date;
+                let to_days: u256 = 1000 * 60 * 60 * 24;
+                
+
+                let penalty_value = difference/to_days;
+
+                if penalty_value <= 2_u256 {
+                    let penalty_amount = save_to_withdraw.save_amount * 1/100;
+                    self._perform_withdraw(save_to_withdraw,penalty_amount,withdrawing_saver,recepient);
+                } else if penalty_value > 2_u256 &&  penalty_value <= 10_u256{
+                    let penalty_amount = save_to_withdraw.save_amount * 2/100;
+                    self._perform_withdraw(save_to_withdraw,penalty_amount,withdrawing_saver,recepient);
+                }else if penalty_value > 10_u256 &&  penalty_value <= 30_u256{
+                    let penalty_amount = save_to_withdraw.save_amount * 3/100;
+                    self._perform_withdraw(save_to_withdraw,penalty_amount,withdrawing_saver,recepient);
+                }else {
+                    let penalty_amount = save_to_withdraw.save_amount * 5/100;
+                    self._perform_withdraw(save_to_withdraw,penalty_amount,withdrawing_saver,recepient);
+                }
+
+
+                }
+        }
+
+        fn get_saver(self: @ContractState, key: ContractAddress) -> Saver {
+            let saver = self.savers.read(key);
+            saver
+            
+        }
+
+        fn get_save(self: @ContractState, key: u256) -> Save{
+            let save = self.saves.read(key);
+            save
+        }
+
+        fn get_reward(self: @ContractState, key: u256) -> Reward{
+            let reward = self.rewards.read(key);
+            reward
+        }
+
+
+
     }
 
 
@@ -148,12 +224,23 @@ mod SaverContract {
             self.savers.write(key,value);
         }
 
-        fn _set_save(ref self: ContractState,value:Save, key: felt252){
+        fn _set_save(ref self: ContractState,value:Save, key: u256){
             self.saves.write(key,value);
         }
 
-        fn _set_reward(ref self: ContractState,value:Reward, key: felt252){
+        fn _set_reward(ref self: ContractState,value:Reward, key: u256){
             self.rewards.write(key,value);
+        }         
+        
+        fn _perform_withdraw(ref self: ContractState,save_to_withdraw:Save, penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress){
+            
+            
+
+            let savers_amount = save_to_withdraw.save_amount - penalty_amount;
+            self.akibas_earnings.write(penalty_amount);
+
+            withdrawing_saver.total_saves_amount -= save_to_withdraw.save_amount;
+            self._set_saver(withdrawing_saver,recepient);
         }
    
     }
@@ -204,12 +291,7 @@ mod tests {
 
 
         let saver_instance = Saver {
-            first_name: 'John',
-            last_name: 'Doe',
-            phone_number: '07784389382',
-            email: 'john@example.com',
             address: userContractAddress,
-            secret_word: 'XXXXXXXX',
             total_saves_amount: 0, // Set an appropriate initial value for these fields
             total_amount_earned: 0,
         };
@@ -219,7 +301,7 @@ mod tests {
 
         // Read the array.
         let saver = contract.get_saver(userContractAddress);
-        assert(saver.phone_number == '07784389382', 'read');
+        assert(saver.total_saves_amount == 0, 'read');
 
 
     }
@@ -237,7 +319,7 @@ mod tests {
             save_id: 123,  // Replace with the desired u64 value
             saver_adress: userContractAddress,
             save_amount: 500,  // Replace with the desired u64 value
-            token_uri: 'your_token_uri_here',  // Replace with the desired felt252 value
+            token_id: 1,  // Replace with the desired felt252 value
             save_earnings: 100,  // Replace with the desired u64 value
             save_period: 'your_save_period_here',  // Replace with the desired felt252 value
             save_start:30000,
@@ -265,6 +347,7 @@ mod tests {
         let reward_instance = Reward {
             reward_id: '123',  // Replace with the desired felt252 value
             reward_uri: 'your_reward_uri_here',  // Replace with the desired felt252 value
+            reward_type:'amnesty',
             redeemed: false,  // Set to true or false as needed
             rewarded_user: userContractAddress,
         };
