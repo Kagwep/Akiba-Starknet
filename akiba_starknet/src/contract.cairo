@@ -43,6 +43,7 @@ mod SaverContract {
         rewards_id_count:u256,
         akibas_earnings:u256,
         is_saver: LegacyMap::<ContractAddress, bool>,
+        token_id_count:u256,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -87,6 +88,9 @@ mod SaverContract {
         // Set contract deployer as the owner
         let contract_deployer:ContractAddress = get_caller_address();
         self.owner.write(contract_deployer);
+        self.save_id_count.write(0);
+        self.rewards_id_count.write(0);
+        self.token_id_count.write(0);
         
     }
 
@@ -126,7 +130,18 @@ mod SaverContract {
             }
 
 
-        fn set_save(ref self: ContractState,value:Save,key: u256,token_id: u256){
+        fn set_save(ref self: ContractState,mut value:Save,key: u256){
+
+            let new_save_id = self.save_id_count.read() + 1;
+
+            let value.save_id = new_save_id;
+
+            self.save_id_count.write(new_save_id);
+
+            let new_toke_id = self.token_id_count.read();
+
+            self.token_id_count.read(new_token_i)
+
             let recepient = get_caller_address();
             let mut unsafe_state = ERC721::unsafe_new_contract_state();
             ERC721::InternalImpl::_mint(ref unsafe_state,value.saver_adress,token_id);
@@ -177,7 +192,7 @@ mod SaverContract {
                 let reward_id = self.rewards_id_count.read() + 1;
                 self.rewards_id_count.write(reward_id);
                 let reward = Reward {
-                    reward_id: reward_id, reward_uri: 'amnesty', redeemed: false,reward_type:'amnesty',rewarded_user:recepient
+                    reward_id: reward_id, reward_uri: 'amnesty',token_id:1, redeemed: false,reward_type:'amnesty',rewarded_user:recepient
                     };
                 self._set_reward(reward,reward_id);
 
@@ -251,7 +266,7 @@ mod SaverContract {
             self.rewards.write(key,value);
         }         
         
-        fn _perform_withdraw(ref self: ContractState,save_to_withdraw:Save, penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress,reward_id:u256){
+        fn _perform_withdraw(ref self: ContractState,save_to_withdraw:Save,mut penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress,reward_id:u256){
             
             if reward_id != 0_256{
                 let reward = self.rewards.read(reward_id);

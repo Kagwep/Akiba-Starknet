@@ -38,7 +38,7 @@ function Login() {
                 <Input className="mt-1" type="password" placeholder="***************" />
               </Label>
 
-              <Button className="mt-4" block tag={Link} to="/app">
+              <Button className="mt-4" block tag={Link} to="/">
                 Log in
               </Button>
 
