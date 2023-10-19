@@ -7,37 +7,37 @@
  */
 const routes = [
   {
-    path: '/app/dashboard', // the url
+    path: 'dashboard', // the url
     icon: 'HomeIcon', // the component being exported from icons/index.js
     name: 'Dashboard', // name that appear in Sidebar
   },
   {
-    path: '/app/forms',
+    path: 'forms',
     icon: 'FormsIcon',
     name: 'Save',
   },
   {
-    path: '/app/cards',
+    path: 'cards',
     icon: 'CardsIcon',
     name: 'Save Exchanges',
   },
   {
-    path: '/app/charts',
+    path: 'harts',
     icon: 'ChartsIcon',
     name: 'Charts',
   },
   {
-    path: '/app/buttons',
+    path: 'buttons',
     icon: 'ButtonsIcon',
     name: 'Withdraw',
   },
   {
-    path: '/app/modals',
+    path: 'modals',
     icon: 'ModalsIcon',
     name: 'Rewards',
   },
   {
-    path: '/app/tables',
+    path: 'tables',
     icon: 'TablesIcon',
     name: 'Savers',
   },
@@ -47,23 +47,23 @@ const routes = [
     routes: [
       // submenu
       {
-        path: '/login',
+        path: 'login',
         name: 'Login',
       },
       {
-        path: '/create-account',
+        path: 'create-account',
         name: 'Create account',
       },
       {
-        path: '/forgot-password',
+        path: 'forgot-password',
         name: 'Forgot password',
       },
       {
-        path: '/app/404',
+        path: '404',
         name: '404',
       },
       {
-        path: '/app/blank',
+        path: 'blank',
         name: 'Blank',
       },
     ],

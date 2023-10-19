@@ -1,7 +1,7 @@
 import React from 'react'
 
 import ChartCard from '../components/Chart/ChartCard'
-import { Doughnut, Line, Bar } from 'react-chartjs-2'
+// import { Doughnut, Line, Bar } from 'react-chartjs-2'
 import ChartLegend from '../components/Chart/ChartLegend'
 import PageTitle from '../components/Typography/PageTitle'
 import {
@@ -18,7 +18,7 @@ function Charts() {
     <>
       <PageTitle>Charts</PageTitle>
 
-      <div className="grid gap-6 mb-8 md:grid-cols-2">
+      {/* <div className="grid gap-6 mb-8 md:grid-cols-2">
         <ChartCard title="Doughnut">
           <Doughnut {...doughnutOptions} />
           <ChartLegend legends={doughnutLegends} />
@@ -32,8 +32,8 @@ function Charts() {
         <ChartCard title="Bars">
           <Bar {...barOptions} />
           <ChartLegend legends={barLegends} />
-        </ChartCard>
-      </div>
+        </ChartCard> */}
+      {/* </div> */}
     </>
   )
 }

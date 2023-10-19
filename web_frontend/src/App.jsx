@@ -13,7 +13,7 @@ function App() {
       <Router>
         <AccessibleNavigationAnnouncer />
         <Switch>
-          <Route path="/app" component={Layout} />
+          <Route path="/" component={Layout} />
         </Switch>
       </Router>
     </>
