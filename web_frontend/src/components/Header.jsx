@@ -105,96 +105,13 @@ function Header() {
           {/* <!-- Theme toggler --> */}
           <li className="flex">
             <button
-              className="rounded-md focus:outline-none focus:shadow-outline-purple"
+              className="px-4 py-1 bg-blue-600 rounded-md text-white outline-none focus:ring-4 shadow-lg transform active:scale-x-75 transition-transform mx-5"
               onClick={toggleMode}
               aria-label="Toggle color mode"
             >
-              {mode === 'dark' ? (
-                <SunIcon className="w-5 h-5" aria-hidden="true" />
-              ) : (
-                <MoonIcon className="w-5 h-5" aria-hidden="true" />
-              )}
+              Connect
             </button>
-          </li>
-          <li className="flex">
-          <div>
-            {/* {isConnected ? (
-              <div>
-                <Button onClick={disconnectWallet}>Disconnect</Button>
-              </div>
-            ) : (
-              <Button onClick={connectWallet}>Connect Wallet</Button>
-            )} */}
-          </div>
-          </li>
-          {/* <!-- Notifications menu --> */}
-          <li className="relative">
-            <button
-              className="relative align-middle rounded-md focus:outline-none focus:shadow-outline-purple"
-              onClick={handleNotificationsClick}
-              aria-label="Notifications"
-              aria-haspopup="true"
-            >
-              <BellIcon className="w-5 h-5" aria-hidden="true" />
-              {/* <!-- Notification badge --> */}
-              <span
-                aria-hidden="true"
-                className="absolute top-0 right-0 inline-block w-3 h-3 transform translate-x-1 -translate-y-1 bg-red-600 border-2 border-white rounded-full dark:border-gray-800"
-              ></span>
-            </button>
-
-            <Dropdown
-              align="right"
-              isOpen={isNotificationsMenuOpen}
-              onClose={() => setIsNotificationsMenuOpen(false)}
-            >
-              <DropdownItem tag="a" href="#" className="justify-between">
-                <span>Messages</span>
-                <Badge type="danger">13</Badge>
-              </DropdownItem>
-              <DropdownItem tag="a" href="#" className="justify-between">
-                <span>Sales</span>
-                <Badge type="danger">2</Badge>
-              </DropdownItem>
-              <DropdownItem onClick={() => alert('Alerts!')}>
-                <span>Alerts</span>
-              </DropdownItem>
-            </Dropdown>
-          </li>
-          {/* <!-- Profile menu --> */}
-          <li className="relative">
-            <button
-              className="rounded-full focus:shadow-outline-purple focus:outline-none"
-              onClick={handleProfileClick}
-              aria-label="Account"
-              aria-haspopup="true"
-            >
-              <Avatar
-                className="align-middle w-50 h-50"
-                src="735452-bc7d86632805?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=200&fit=max&s=aa3a807e1bbdfd4364d1f449eaa96d82"
-                alt=""
-                aria-hidden="true"
-                
-              />
-            </button>
-            <Dropdown
-              align="right"
-              isOpen={isProfileMenuOpen}
-              onClose={() => setIsProfileMenuOpen(false)}
-            >
-              <DropdownItem tag="a" href="#">
-                <OutlinePersonIcon className="w-4 h-4 mr-3" aria-hidden="true" />
-                <span>Profile</span>
-              </DropdownItem>
-              <DropdownItem tag="a" href="#">
-                <OutlineCogIcon className="w-4 h-4 mr-3" aria-hidden="true" />
-                <span>Settings</span>
-              </DropdownItem>
-              <DropdownItem onClick={() => alert('Log out!')}>
-                <OutlineLogoutIcon className="w-4 h-4 mr-3" aria-hidden="true" />
-                <span>Log out</span>
-              </DropdownItem>
-            </Dropdown>
+            
           </li>
         </ul>
       </div>

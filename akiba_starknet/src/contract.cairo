@@ -157,8 +157,6 @@ mod SaverContract {
             let mut unsafe_state = ERC721::unsafe_new_contract_state();
             ERC721::InternalImpl::_mint(ref unsafe_state,userContractAddress,token_id);
 
-            let is_recepient_saver = self.is_saver.read(recepient);
-
             let user_is_saver =  self._is_user_saver(recepient);
 
             let save_id = self.save_id_count.read() + 1;
@@ -266,19 +264,21 @@ mod SaverContract {
 
                 let penalty_value = difference/to_days;
 
+                let is_transfer:bool = false;
+
 
                 if penalty_value <= 2_u256 {
                     let penalty_amount = save_to_withdraw.save_amount * 1/100;
-                    self._perform_withdraw(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 } else if penalty_value > 2_u256 &&  penalty_value <= 10_u256{
                     let penalty_amount = save_to_withdraw.save_amount * 2/100;
-                    self._perform_withdraw(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 }else if penalty_value > 10_u256 &&  penalty_value <= 30_u256{
                     let penalty_amount = save_to_withdraw.save_amount * 3/100;
-                    self._perform_withdraw(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 }else {
                     let penalty_amount = save_to_withdraw.save_amount * 5/100;
-                    self._perform_withdraw(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_withdraw,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 }
 
 
@@ -309,6 +309,9 @@ mod SaverContract {
                 // petrform a transfer
                 withdrawing_saver.total_saves_amount -= save_to_transfer.save_amount;
                 self._set_saver(withdrawing_saver,recepient);
+
+
+
 
                 save_to_transfer.saver_adress = recepient;
 
@@ -369,19 +372,20 @@ mod SaverContract {
 
                 let penalty_value = difference/to_days;
 
+                let is_transfer:bool = true;
 
                 if penalty_value <= 2_u256 {
                     let penalty_amount = save_to_transfer.save_amount * 1/300;
-                    self._perform_withdraw(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 } else if penalty_value > 2_u256 &&  penalty_value <= 10_u256{
                     let penalty_amount = save_to_transfer.save_amount * 1/200;
-                    self._perform_withdraw(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 }else if penalty_value > 10_u256 &&  penalty_value <= 30_u256{
                     let penalty_amount = save_to_transfer.save_amount * 1/100;
-                    self._perform_withdraw(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 }else {
                     let penalty_amount = save_to_transfer.save_amount * 2/100;
-                    self._perform_withdraw(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id);
+                    self._perform_withdraw_or_transfer(save_key,save_to_transfer,penalty_amount,withdrawing_saver,recepient,reward_id,is_transfer);
                 }
 
 
@@ -484,7 +488,7 @@ mod SaverContract {
 
         }         
         
-        fn _perform_withdraw(ref self: ContractState,save_key:u256,mut save_to_withdraw:Save,mut penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress,reward_id:u256){
+        fn _perform_withdraw_or_transfer(ref self: ContractState,save_key:u256,mut save_to_withdraw_or_transfer:Save,mut penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress,reward_id:u256,is_transfer:bool){
 
             if reward_id != 0_u256{
                 let mut reward = self.rewards.read(reward_id);
@@ -503,18 +507,60 @@ mod SaverContract {
                 } 
             }
 
-            let savers_amount = save_to_withdraw.save_amount - penalty_amount;
+            let savers_amount = save_to_withdraw_or_transfer.save_amount - penalty_amount;
             self.akibas_earnings.write(penalty_amount);
 
-            withdrawing_saver.total_saves_amount -= save_to_withdraw.save_amount;
-            self._set_saver(withdrawing_saver,recepient);
 
-            save_to_withdraw.save_active = false;
+            if is_transfer {
 
-            self.saves.write(save_key,save_to_withdraw);
+                let mut from = get_caller_address();
 
-            let mut unsafe_state = ERC721::unsafe_new_contract_state();
-            ERC721::InternalImpl::_burn(ref unsafe_state,save_to_withdraw.token_id);
+                let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+                from = userContractAddress;
+
+                withdrawing_saver.total_saves_amount -= save_to_withdraw_or_transfer.save_amount;
+                self._set_saver(withdrawing_saver,from);
+
+                let user_is_saver =  self._is_user_saver(recepient);
+
+                if user_is_saver {
+                    let mut saver = self.savers.read(recepient);
+                    saver.total_saves_amount += savers_amount;
+                    self._set_saver(saver,recepient);
+                } else {
+
+                    let saver = Saver {
+                        address: recepient, total_saves_amount: savers_amount, total_amount_earned: 0
+                        };
+                    self._set_saver(saver,recepient);
+                    self.is_saver.write(recepient,true);
+                }
+
+
+                //perform a transfer
+                save_to_withdraw_or_transfer.saver_adress = recepient;
+                self.saves.write(save_key,save_to_withdraw_or_transfer);
+                let mut unsafe_state = ERC721::unsafe_new_contract_state();
+                ERC721::ERC721Impl::transfer_from(ref unsafe_state,from,recepient,save_to_withdraw_or_transfer.token_id);
+           
+            } else {
+
+
+                withdrawing_saver.total_saves_amount -= save_to_withdraw_or_transfer.save_amount;
+                self._set_saver(withdrawing_saver,recepient);
+
+                // perform a withdrawer
+
+                save_to_withdraw_or_transfer.save_amount = savers_amount;
+                save_to_withdraw_or_transfer.save_active = false;
+                self.saves.write(save_key,save_to_withdraw_or_transfer);
+                let mut unsafe_state = ERC721::unsafe_new_contract_state();
+                ERC721::InternalImpl::_burn(ref unsafe_state,save_to_withdraw_or_transfer.token_id);
+
+            }
+
+
 
         }
 
@@ -823,7 +869,7 @@ mod tests {
         contract.transfer_save(save_key,end_date,userContractAddress_1,0);
 
         let save = contract.get_save(1_u256);
-        assert(save.save_active == false, 'Save Inactive');
+        assert(save.saver_adress == userContractAddress_1, 'Save Change Owner');
 
 
         let owner = contract.owner_of(1);
@@ -901,7 +947,7 @@ mod tests {
         contract.transfer_save(save_key,end_date,userContractAddress_1,0);
 
         let save = contract.get_save(1_u256);
-        assert(save.save_active == false, 'Save Inactive');
+        assert(save.saver_adress == userContractAddress_1, 'Saver changed');
 
         let owner = contract.owner_of(1);
 
