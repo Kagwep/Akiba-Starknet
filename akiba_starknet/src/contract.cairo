@@ -15,8 +15,9 @@ trait ISaverContract<TContractState> {
     fn token_uri(self: @TContractState,token_id: u256) -> felt252;
     fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
     fn owner_of(self: @TContractState, token_id: u256) -> ContractAddress;
-    fn withdraw_save(ref self: TContractState,save_id:u256,end_date:u256);
-    fn transfer_save(ref self: TContractState,save_id:u256,end_date:u256,recepient:ContractAddress);
+    fn withdraw_save(ref self: TContractState,save_id:u256,end_date:u256,reward_id:u256 );
+    fn transfer_save(ref self: TContractState,save_key:u256,end_date:u256,recepient:ContractAddress,reward_id:u256);
+    fn get_akiba_earnings(self: @TContractState) -> u256;
 
 }
 
@@ -147,9 +148,11 @@ mod SaverContract {
 
             self.token_id_count.write(token_id);
 
-            let recepient = get_caller_address();
+            let mut recepient = get_caller_address();
 
             let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+             recepient = userContractAddress;
 
             let mut unsafe_state = ERC721::unsafe_new_contract_state();
             ERC721::InternalImpl::_mint(ref unsafe_state,userContractAddress,token_id);
@@ -214,14 +217,17 @@ mod SaverContract {
       
         }
 
-        fn withdraw_save(ref self: ContractState,save_key:u256,end_date:u256){
+        fn withdraw_save(ref self: ContractState,save_key:u256,end_date:u256,reward_id:u256){
             let mut save_to_withdraw  = self.saves.read(save_key);
             let mut recepient = get_caller_address();
-            let mut withdrawing_saver = self.savers.read(recepient);
 
-             let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+            let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
 
              recepient = userContractAddress;
+
+            let mut withdrawing_saver = self.savers.read(recepient);
+
+
 
             let save_owner = self.owner_of(save_to_withdraw.token_id);
             
@@ -255,14 +261,11 @@ mod SaverContract {
 
             } else{
 
-                let reward_id = self.rewards_id_count.read() + 1;
-                self.rewards_id_count.write(reward_id);
-
-                let difference = end_date - save_end_date;
+                let difference = save_end_date - end_date;
                 let to_days: u256 = 1000 * 60 * 60 * 24;
-                
 
                 let penalty_value = difference/to_days;
+
 
                 if penalty_value <= 2_u256 {
                     let penalty_amount = save_to_withdraw.save_amount * 1/100;
@@ -283,16 +286,21 @@ mod SaverContract {
         }
 
 
-        fn transfer_save(ref self:ContractState,save_key:u256,end_date:u256,recepient:ContractAddress){
+        fn transfer_save(ref self:ContractState,save_key:u256,end_date:u256,recepient:ContractAddress,reward_id:u256){
 
-            let save_to_transfer  = self.saves.read(save_key);
-            let mut withdrawing_saver = self.savers.read(recepient);
+            let mut save_to_transfer  = self.saves.read(save_key);
 
-            let from = get_caller_address();
+            let mut from = get_caller_address();
+
+            let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+            from = userContractAddress;
+
+            let mut withdrawing_saver = self.savers.read(from);
 
             let save_owner = self.owner_of(save_to_transfer.token_id);
             
-            assert(recepient == save_owner,'Error: WRONG_REQUESTER');
+            assert(from == save_owner,'Error: WRONG_REQUESTER');
 
             let save_end_date = save_to_transfer.save_end;
 
@@ -301,6 +309,10 @@ mod SaverContract {
                 // petrform a transfer
                 withdrawing_saver.total_saves_amount -= save_to_transfer.save_amount;
                 self._set_saver(withdrawing_saver,recepient);
+
+                save_to_transfer.saver_adress = recepient;
+
+                self.saves.write(save_key,save_to_transfer);
 
                 let mut unsafe_state = ERC721::unsafe_new_contract_state();
 
@@ -350,14 +362,13 @@ mod SaverContract {
 
             } else{
 
-                let reward_id = self.rewards_id_count.read() + 1;
-                self.rewards_id_count.write(reward_id);
 
-                let difference = end_date - save_end_date;
+                let difference = save_end_date - end_date ;
                 let to_days: u256 = 1000 * 60 * 60 * 24;
                 
 
                 let penalty_value = difference/to_days;
+
 
                 if penalty_value <= 2_u256 {
                     let penalty_amount = save_to_transfer.save_amount * 1/300;
@@ -392,6 +403,10 @@ mod SaverContract {
         fn get_reward(self: @ContractState, key: u256) -> Reward{
             let reward = self.rewards.read(key);
             reward
+        }
+
+        fn get_akiba_earnings(self: @ContractState) -> u256 {
+            self.akibas_earnings.read()
         }
 
 
@@ -469,15 +484,20 @@ mod SaverContract {
 
         }         
         
-        fn _perform_withdraw(ref self: ContractState,save_key:u256, save_to_withdraw:Save,mut penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress,reward_id:u256){
-            
-            if reward_id != 0_256{
-                let reward = self.rewards.read(reward_id);
+        fn _perform_withdraw(ref self: ContractState,save_key:u256,mut save_to_withdraw:Save,mut penalty_amount:u256,mut withdrawing_saver:Saver,recepient:ContractAddress,reward_id:u256){
+
+            if reward_id != 0_u256{
+                let mut reward = self.rewards.read(reward_id);
                 let reward_owner = self.owner_of(reward.token_id);
                 assert(reward_owner ==  recepient, 'ERROR: INCORRECT REWARD OWNER');
                 if reward.reward_type == 'amnesty'{
                     penalty_amount  = 0;
                     // burn token
+
+                    reward.redeemed = true;
+
+                    self.rewards.write(reward_id,reward);
+
                     let mut unsafe_state = ERC721::unsafe_new_contract_state();
                     ERC721::InternalImpl::_burn(ref unsafe_state,reward.token_id);
                 } 
@@ -488,6 +508,8 @@ mod SaverContract {
 
             withdrawing_saver.total_saves_amount -= save_to_withdraw.save_amount;
             self._set_saver(withdrawing_saver,recepient);
+
+            save_to_withdraw.save_active = false;
 
             self.saves.write(save_key,save_to_withdraw);
 
@@ -551,7 +573,7 @@ mod tests {
         let mut contract = deploy(name,symbol);
 
         let caller = get_caller_address();
-        caller.print();
+
 
         let userContractAddress: ContractAddress =  contract_address_const::<0x00000>();
 
@@ -665,13 +687,229 @@ mod tests {
 
         let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
 
+        let saver =  contract.get_saver(userContractAddress);
+        
+        assert(saver.total_saves_amount == 500, 'SAVER AMOUNT');
+
         let balance = contract.balance_of(userContractAddress);
 
         assert(balance == 1, 'BALANCE'); 
+
+
+        let owner = contract.owner_of(1);
+
+        assert(owner == userContractAddress, 'OWNER VERIFY');
+
+
         
         let save_key:u256 = 1;
         let end_date:u256 = 6001;
-        contract.withdraw_save(save_key,end_date);
+
+        contract.withdraw_save(save_key,end_date,0);
+
+        let save = contract.get_save(1_u256);
+        assert(save.save_active == false, 'Save Inactive');
+
+
+        // Read the array.
+        let reward = contract.get_reward(2);
+
+        assert(reward.reward_type == 'amnesty', 'REWARD VERIFY');
+
+        // let owner = contract.owner_of(1);
+
+        // assert(owner != userContractAddress, 'OWNER AFTER VERIFY');
+
+
+    }
+
+    #[test]
+    #[available_gas(20000000)]
+    fn withdraw_save_with_penalty(){
+
+        let name:felt252 = 'Akiba';
+        let symbol:felt252 = 'AKB'; 
+
+        let mut contract = deploy(name,symbol);
+
+        let    save_amount:u256 = 600;  // Replace with the desired u64 value
+        let    save_earnings:u256 = 100;  // Replace with the desired u64 value
+        let    save_start:u256 = 30000;
+        let    save_end:u256 =  6000;
+        let    save_period:felt252 = 'your_save_period_here';  // Replace with the desired felt252 value
+        let   witdraw_penalty:u256 = 2;
+        
+        let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+
+        // hashed data key
+        contract.set_save(save_amount: save_amount,save_earnings: save_earnings,save_start:save_start,save_end:save_end,save_period:save_period,witdraw_penalty:witdraw_penalty);
+
+
+        let save = contract.get_save(1);
+        assert(save.save_amount == 600, 'Second Save');
+
+        let saver =  contract.get_saver(userContractAddress);
+        
+        assert(saver.total_saves_amount == 600, 'SAVER AMOUNT');
+
+        // let balance = contract.balance_of(userContractAddress);
+
+        // assert(balance == 1, 'BALANCE');
+
+        let save_key:u256 = 1;
+        let end_date:u256 = 4001;
+
+        contract.withdraw_save(save_key,end_date,0);
+
+        let save = contract.get_save(1_u256);
+        assert(save.save_active == false, 'Save Inactive');
+
+
+        let earnings = contract.get_akiba_earnings();
+
+        assert(earnings == 6, 'Savings');
+
+
+    }
+
+
+    #[test]
+    #[available_gas(20000000)]
+    fn transfer_save(){
+
+        let name:felt252 = 'Akiba';
+        let symbol:felt252 = 'AKB'; 
+
+        let mut contract = deploy(name,symbol);
+
+
+        let    save_amount:u256 = 500;  // Replace with the desired u64 value
+        let    save_earnings:u256 = 100;  // Replace with the desired u64 value
+        let    save_start:u256 = 30000;
+        let    save_end:u256 =  6000;
+        let    save_period:felt252 = 'your_save_period_here';  // Replace with the desired felt252 value
+        let   witdraw_penalty:u256 = 2;
+        
+
+        // hashed data key
+        contract.set_save(save_amount: save_amount,save_earnings: save_earnings,save_start:save_start,save_end:save_end,save_period:save_period,witdraw_penalty:witdraw_penalty);
+
+
+        let save = contract.get_save(1);
+        assert(save.save_amount == 500, 'read');
+
+        let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+        let saver =  contract.get_saver(userContractAddress);
+        
+        assert(saver.total_saves_amount == 500, 'SAVER AMOUNT');
+
+        let balance = contract.balance_of(userContractAddress);
+
+        assert(balance == 1, 'BALANCE'); 
+
+
+        let owner = contract.owner_of(1);
+
+        assert(owner == userContractAddress, 'OWNER VERIFY');
+
+
+        let userContractAddress_1: ContractAddress =  contract_address_const::<0x00002>();
+        
+        let save_key:u256 = 1;
+        let end_date:u256 = 6001;
+
+        contract.transfer_save(save_key,end_date,userContractAddress_1,0);
+
+        let save = contract.get_save(1_u256);
+        assert(save.save_active == false, 'Save Inactive');
+
+
+        let owner = contract.owner_of(1);
+
+        assert(owner == userContractAddress_1, 'OWNER VERIFY');
+
+
+        // Read the array.
+        let reward = contract.get_reward(2);
+
+        assert(reward.reward_type == 'amnesty', 'REWARD VERIFY');
+
+        let reward = contract.get_reward(3);
+
+        assert(reward.reward_type == 'Appreciation', 'Appreciation');
+
+        let reward = contract.get_reward(4);
+
+        assert(reward.reward_type == 'Appreciation', 'Appreciation');
+
+        let reward = contract.get_reward(5);
+
+        assert(reward.reward_type == 'amnesty', 'REWARD VERIFY');
+
+        // let owner = contract.owner_of(1);
+
+        // assert(owner != userContractAddress, 'OWNER AFTER VERIFY');
+
+
+    }
+
+    #[test]
+    #[available_gas(20000000)]
+    fn transfer_save_with_penalty(){
+
+        let name:felt252 = 'Akiba';
+        let symbol:felt252 = 'AKB'; 
+
+        let mut contract = deploy(name,symbol);
+
+        let    save_amount:u256 = 600;  // Replace with the desired u64 value
+        let    save_earnings:u256 = 100;  // Replace with the desired u64 value
+        let    save_start:u256 = 30000;
+        let    save_end:u256 =  6000;
+        let    save_period:felt252 = 'your_save_period_here';  // Replace with the desired felt252 value
+        let   witdraw_penalty:u256 = 2;
+        
+        let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+
+        // hashed data key
+        contract.set_save(save_amount: save_amount,save_earnings: save_earnings,save_start:save_start,save_end:save_end,save_period:save_period,witdraw_penalty:witdraw_penalty);
+
+
+        let save = contract.get_save(1);
+        assert(save.save_amount == 600, 'Second Save');
+
+        let owner = contract.owner_of(1);
+
+        assert(owner == userContractAddress, 'OWNER VERIFY');
+
+
+        let saver =  contract.get_saver(userContractAddress);
+        
+        assert(saver.total_saves_amount == 600, 'SAVER AMOUNT');
+
+        // let balance = contract.balance_of(userContractAddress);
+
+        // assert(balance == 1, 'BALANCE');
+        let userContractAddress_1: ContractAddress =  contract_address_const::<0x00002>();
+
+        let save_key:u256 = 1;
+        let end_date:u256 = 4001;
+
+        contract.transfer_save(save_key,end_date,userContractAddress_1,0);
+
+        let save = contract.get_save(1_u256);
+        assert(save.save_active == false, 'Save Inactive');
+
+        let owner = contract.owner_of(1);
+
+        assert(owner == userContractAddress_1, 'OWNER VERIFY');
+
+        let earnings = contract.get_akiba_earnings();
+
+        assert(earnings == 2, 'Savings');
 
 
     }
