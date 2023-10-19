@@ -11,7 +11,6 @@ import {
   OutlineLogoutIcon,
 } from '../icons'
 import { Avatar, Badge, Input, Dropdown, DropdownItem, WindmillContext,Button } from '@windmill/react-ui'
-import { connect, disconnect } from '@argent/get-starknet'
 
 
 function Header() {
