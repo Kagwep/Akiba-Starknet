@@ -19,10 +19,10 @@ function Header() {
   const { toggleSidebar } = useContext(SidebarContext)
  
 
-  const [connection, setConnection] = useState(null); // Initialize connection state with null
-  const [provider, setProvider] = useState(null); // Initialize provider state with null
-  const [address, setAddress] = useState(null); // Initialize address state with null
-  const [isConnected, setIsConnected] = useState(false);
+  // const [connection, setConnection] = useState(null); // Initialize connection state with null
+  // const [provider, setProvider] = useState(null); // Initialize provider state with null
+  // const [address, setAddress] = useState(null); // Initialize address state with null
+  // const [isConnected, setIsConnected] = useState(false);
 
 
   const [isNotificationsMenuOpen, setIsNotificationsMenuOpen] = useState(false)
@@ -37,46 +37,46 @@ function Header() {
     setIsProfileMenuOpen(!isProfileMenuOpen)
   }
 
-  const connectWallet = async() => {
-    const connection = await connect({webWalletUrl: "https://web.argent.xyz"});
+  // const connectWallet = async() => {
+  //   const connection = await connect({webWalletUrl: "https://web.argent.xyz"});
   
-    if(connection && connection.isConnected) {
-      setConnection(connection)
-      setProvider(connection.account)
-      setAddress(connection.selectedAddress)
-      setIsConnected(true)
-    }
-   }
+  //   if(connection && connection.isConnected) {
+  //     setConnection(connection)
+  //     setProvider(connection.account)
+  //     setAddress(connection.selectedAddress)
+  //     setIsConnected(true)
+  //   }
+  //  }
 
-   useEffect(() => {
+  //  useEffect(() => {
 
-    const connectToStarknet = async () => {
+  //   const connectToStarknet = async () => {
     
-      const connection = await connect({modalMode: "neverAsk", webWalletUrl: "https://web.argent.xyz"})
+  //     const connection = await connect({modalMode: "neverAsk", webWalletUrl: "https://web.argent.xyz"})
     
-      if (connection && connection.isConnected) {
-        setConnection(connection);
-        setProvider(connection.account);
-        setAddress(connection.selectedAddress);
-        setIsConnected(true);
-      }
-    };
+  //     if (connection && connection.isConnected) {
+  //       setConnection(connection);
+  //       setProvider(connection.account);
+  //       setAddress(connection.selectedAddress);
+  //       setIsConnected(true);
+  //     }
+  //   };
     
-    connectToStarknet();
-  }, [])
+  //   connectToStarknet();
+  // }, [])
 
 
-  const disconnectWallet = async () => {
+  // const disconnectWallet = async () => {
 
-    await disconnect();
+  //   await disconnect();
     
-    setConnection(undefined);
-    setProvider(undefined);
-    setAddress('');
-    setIsConnected(false)
-  }
+  //   setConnection(undefined);
+  //   setProvider(undefined);
+  //   setAddress('');
+  //   setIsConnected(false)
+  // }
 
-  console.log("Address",address);
+  // console.log("Address",address);
 
   return (
     <header className="z-40 py-4 bg-white shadow-bottom dark:bg-gray-800">
@@ -119,13 +119,13 @@ function Header() {
           </li>
           <li className="flex">
           <div>
-            {isConnected ? (
+            {/* {isConnected ? (
               <div>
                 <Button onClick={disconnectWallet}>Disconnect</Button>
               </div>
             ) : (
               <Button onClick={connectWallet}>Connect Wallet</Button>
-            )}
+            )} */}
           </div>
           </li>
           {/* <!-- Notifications menu --> */}
