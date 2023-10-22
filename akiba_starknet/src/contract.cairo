@@ -18,6 +18,9 @@ trait ISaverContract<TContractState> {
     fn withdraw_save(ref self: TContractState,save_id:u256,end_date:u256,reward_id:u256 );
     fn transfer_save(ref self: TContractState,save_key:u256,end_date:u256,recepient:ContractAddress,reward_id:u256);
     fn get_akiba_earnings(self: @TContractState) -> u256;
+    fn transfer_earnings(ref self:TContractState, transfer_to:ContractAddress,amount:u256);
+    fn withdraw_earnings(ref self:TContractState, amount:u256);
+    fn request_save_transfer(ref self:TContractState, key:u256);
 
 }
 
@@ -39,6 +42,7 @@ mod SaverContract {
         owner:ContractAddress,
         savers: LegacyMap::<ContractAddress, Saver>,
         saves: LegacyMap::<u256, Save>,
+        transfers: LegacyMap::<u256, Save>,
         rewards: LegacyMap::<u256, Reward>,
         save_id_count:u256,
         rewards_id_count:u256,
@@ -46,6 +50,8 @@ mod SaverContract {
         is_saver: LegacyMap::<ContractAddress, bool>,
         token_id_count:u256,
         key_count:u256,
+        transfer_count:u256,
+        listed:LegacyMap::<ContractAddress, bool>,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -62,12 +68,12 @@ mod SaverContract {
         saver_adress: ContractAddress,
         save_amount: u256,
         token_id: u256,
-        save_earnings: u256,
         save_start:u256,
         save_end:u256,
         save_period:felt252,
         witdraw_penalty:u256,
         save_active:bool,
+        transfer_request:bool,
     }
 
 
@@ -95,6 +101,7 @@ mod SaverContract {
         self.rewards_id_count.write(0);
         self.token_id_count.write(0);
         self.key_count.write(0);
+        self.transfer_count.write(0);
         
     }
 
@@ -292,6 +299,8 @@ mod SaverContract {
 
             let mut from = get_caller_address();
 
+            
+
             let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
 
             from = userContractAddress;
@@ -358,9 +367,12 @@ mod SaverContract {
                     reward_type_3, 
                     from,
                     );
-                
 
-                
+                let transfer_count_k = self.transfer_count.read() + 1;
+                self.transfer_count.write(transfer_count_k);
+
+                self.transfers.write(transfer_count_k,save_to_transfer);
+                                
 
 
             } else{
@@ -393,11 +405,67 @@ mod SaverContract {
 
         }
 
+        fn transfer_earnings(ref self:ContractState, transfer_to:ContractAddress,amount:u256){
+                    let mut transfer_request_from = get_caller_address();
+                
+
+                    let contract_owner = self.owner.read();
+
+                    assert(transfer_request_from == contract_owner, 'TRANSFER REQUEST');
+
+                    let is_transfer_to_listed = self._is_listed(transfer_to);
+
+                    if is_transfer_to_listed{
+                        self.listed.write(transfer_to,false);
+                    } else{
+                        let is_transfer_to_saver = self._is_user_saver(transfer_to);
+                        if is_transfer_to_saver {
+                            let mut to_add_saver_earnings = self.savers.read(transfer_to);
+                            let mut akiba_earnings_balance = self.akibas_earnings.read();
+                            to_add_saver_earnings.total_amount_earned += amount;
+                            let new_balance =  akiba_earnings_balance  - amount;
+                            self.akibas_earnings.write(new_balance);
+                            self.savers.write(transfer_to,to_add_saver_earnings);
+                        }
+                    }
+
+        }
+
+        fn withdraw_earnings(ref self:ContractState, amount:u256){
+            let mut caller_address = get_caller_address();
+
+            let userContractAddress: ContractAddress =  contract_address_const::<0x00002>();
+
+            caller_address = userContractAddress;
+
+            let mut saver = self.savers.read(caller_address);
+            assert(saver.total_amount_earned > amount , 'SAVERS BALANCE');
+
+            saver.total_amount_earned -= amount;
+
+            self.savers.write(caller_address,saver);
+
+        }
+
+        fn request_save_transfer(ref self:ContractState, key:u256){
+            let caller_address = get_caller_address();
+            
+            let is_caller_saver = self._is_user_saver(caller_address);
+
+            if is_caller_saver {
+                let mut save = self.saves.read(key);
+                save.transfer_request = true;
+                self.saves.write(key,save);
+            }
+        }
+
         fn get_saver(self: @ContractState, key: ContractAddress) -> Saver {
             let saver = self.savers.read(key);
             saver
             
         }
+
+
 
         fn get_save(self: @ContractState, key: u256) -> Save{
             let save = self.saves.read(key);
@@ -443,12 +511,12 @@ mod SaverContract {
                 saver_adress:saver_adress,
                 save_amount:save_amount,
                 token_id:token_id,
-                save_earnings:save_earnings,
                 save_start:save_start,
                 save_end:save_end,
                 save_period:save_period,
                 witdraw_penalty:witdraw_penalty,
                 save_active:true,
+                transfer_request:false,
             };
             self.saves.write(key,save);
         }
@@ -457,6 +525,11 @@ mod SaverContract {
         fn _is_user_saver(self: @ContractState,address: ContractAddress) -> bool {
             // Read the registration status of the address from storage
             self.is_saver.read(address)
+        }
+
+        fn _is_listed(self: @ContractState,address: ContractAddress) -> bool {
+            // Read the registration status of the address from storage
+            self.listed.read(address)
         }
 
 
@@ -539,10 +612,18 @@ mod SaverContract {
 
 
                 //perform a transfer
+                save_to_withdraw_or_transfer.save_amount = savers_amount;
                 save_to_withdraw_or_transfer.saver_adress = recepient;
                 self.saves.write(save_key,save_to_withdraw_or_transfer);
                 let mut unsafe_state = ERC721::unsafe_new_contract_state();
                 ERC721::ERC721Impl::transfer_from(ref unsafe_state,from,recepient,save_to_withdraw_or_transfer.token_id);
+                self.listed.write(from,true);
+                
+                let transfer_count_k = self.transfer_count.read() + 1;
+                self.transfer_count.write(transfer_count_k);
+
+                self.transfers.write(transfer_count_k,save_to_withdraw_or_transfer);
+
            
             } else {
 
@@ -557,6 +638,7 @@ mod SaverContract {
                 self.saves.write(save_key,save_to_withdraw_or_transfer);
                 let mut unsafe_state = ERC721::unsafe_new_contract_state();
                 ERC721::InternalImpl::_burn(ref unsafe_state,save_to_withdraw_or_transfer.token_id);
+                self.listed.write(save_to_withdraw_or_transfer.saver_adress,true);
 
             }
 
@@ -817,6 +899,7 @@ mod tests {
         assert(earnings == 6, 'Savings');
 
 
+
     }
 
 
@@ -910,7 +993,7 @@ mod tests {
 
         let mut contract = deploy(name,symbol);
 
-        let    save_amount:u256 = 600;  // Replace with the desired u64 value
+        let    save_amount:u256 = 1200;  // Replace with the desired u64 value
         let    save_earnings:u256 = 100;  // Replace with the desired u64 value
         let    save_start:u256 = 30000;
         let    save_end:u256 =  6000;
@@ -925,7 +1008,7 @@ mod tests {
 
 
         let save = contract.get_save(1);
-        assert(save.save_amount == 600, 'Second Save');
+        assert(save.save_amount == 1200, 'Second Save');
 
         let owner = contract.owner_of(1);
 
@@ -934,7 +1017,7 @@ mod tests {
 
         let saver =  contract.get_saver(userContractAddress);
         
-        assert(saver.total_saves_amount == 600, 'SAVER AMOUNT');
+        assert(saver.total_saves_amount == 1200, 'SAVER AMOUNT');
 
         // let balance = contract.balance_of(userContractAddress);
 
@@ -955,8 +1038,26 @@ mod tests {
 
         let earnings = contract.get_akiba_earnings();
 
-        assert(earnings == 2, 'Savings');
+        assert(earnings == 4, 'Savings');
 
+        contract.transfer_earnings(userContractAddress_1,2);
+
+        let saver_1 = contract.get_saver(userContractAddress_1);
+
+        assert(saver_1.total_amount_earned == 2, 'TRANSFER EARNED');
+
+        contract.withdraw_earnings(1);
+
+        let saver_1 = contract.get_saver(userContractAddress_1);
+
+        assert(saver_1.total_amount_earned == 1 , 'WITHDRAW EARNED');
+
+        contract.transfer_earnings(userContractAddress,2);
+
+        let saver_2 = contract.get_saver(userContractAddress);
+
+        assert(saver_2.total_amount_earned == 0, 'TRANSFER LISTED');
+        
 
     }
 }

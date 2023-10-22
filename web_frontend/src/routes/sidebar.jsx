@@ -19,17 +19,12 @@ const routes = [
   {
     path: 'cards',
     icon: 'CardsIcon',
-    name: 'Save Exchanges',
-  },
-  {
-    path: 'harts',
-    icon: 'ChartsIcon',
-    name: 'Charts',
+    name: 'Save Transfers',
   },
   {
     path: 'buttons',
     icon: 'ButtonsIcon',
-    name: 'Withdraw',
+    name: 'Withdraw/Transfer',
   },
   {
     path: 'modals',
@@ -41,33 +36,7 @@ const routes = [
     icon: 'TablesIcon',
     name: 'Savers',
   },
-  {
-    icon: 'PagesIcon',
-    name: 'Pages',
-    routes: [
-      // submenu
-      {
-        path: 'login',
-        name: 'Login',
-      },
-      {
-        path: 'create-account',
-        name: 'Create account',
-      },
-      {
-        path: 'forgot-password',
-        name: 'Forgot password',
-      },
-      {
-        path: '404',
-        name: '404',
-      },
-      {
-        path: 'blank',
-        name: 'Blank',
-      },
-    ],
-  },
+  
 ]
 
 export default routes

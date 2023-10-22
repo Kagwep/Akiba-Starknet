@@ -11,21 +11,59 @@ import {
   OutlineLogoutIcon,
 } from '../icons'
 import { Avatar, Badge, Input, Dropdown, DropdownItem, WindmillContext,Button } from '@windmill/react-ui'
-
+import { connect, disconnect } from 'starknetkit'
+import { Contract, Provider,constants, provider } from 'starknet'
 
 function Header() {
   const { mode, toggleMode } = useContext(WindmillContext)
   const { toggleSidebar } = useContext(SidebarContext)
  
-
-  // const [connection, setConnection] = useState(null); // Initialize connection state with null
-  // const [provider, setProvider] = useState(null); // Initialize provider state with null
-  // const [address, setAddress] = useState(null); // Initialize address state with null
-  // const [isConnected, setIsConnected] = useState(false);
-
-
   const [isNotificationsMenuOpen, setIsNotificationsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+
+
+  const [connection, setConnection] = useState();
+  const [account, setAccount] = useState();
+  const [address, setAddress] = useState();
+
+  const [retrievedValue, setRetrievedValue] = useState('')
+
+  const connectWallet = async() => {
+    const connection = await connect({webWalletUrl:"https://web.argent.xyz"});
+
+    console.log(connection);
+
+    if (connection && connection.id !=="argentwallet" && connection.isConnected){
+      setConnection(connection);
+      setAccount(connection.account);
+      setAddress(connection.selectedAddress);
+
+    }
+
+    if (connection && connection.chainId !== "SN_MAIN"){
+      try{
+        await window.starknet.request({
+          type:"wallet_addStarknetChain",
+          params:{
+            chainId:"SN_MAIN"
+          }
+        })
+
+      }catch(error){
+        alert("Please manually switch your wallet network to mainnet");
+      }
+
+    }
+
+  }
+
+  const disconnectWallet = async() => {
+        await disconnect()
+        setConnection(undefined);
+        setAccount(undefined);
+        setAddress('');
+  }
+
 
   function handleNotificationsClick() {
     setIsNotificationsMenuOpen(!isNotificationsMenuOpen)
@@ -36,46 +74,7 @@ function Header() {
     setIsProfileMenuOpen(!isProfileMenuOpen)
   }
 
-  // const connectWallet = async() => {
-  //   const connection = await connect({webWalletUrl: "https://web.argent.xyz"});
-  
-  //   if(connection && connection.isConnected) {
-  //     setConnection(connection)
-  //     setProvider(connection.account)
-  //     setAddress(connection.selectedAddress)
-  //     setIsConnected(true)
-  //   }
-  //  }
 
-  //  useEffect(() => {
-
-  //   const connectToStarknet = async () => {
-    
-  //     const connection = await connect({modalMode: "neverAsk", webWalletUrl: "https://web.argent.xyz"})
-    
-  //     if (connection && connection.isConnected) {
-  //       setConnection(connection);
-  //       setProvider(connection.account);
-  //       setAddress(connection.selectedAddress);
-  //       setIsConnected(true);
-  //     }
-  //   };
-    
-  //   connectToStarknet();
-  // }, [])
-
-
-  // const disconnectWallet = async () => {
-
-  //   await disconnect();
-    
-  //   setConnection(undefined);
-  //   setProvider(undefined);
-  //   setAddress('');
-  //   setIsConnected(false)
-  // }
-
-  // console.log("Address",address);
 
   return (
     <header className="z-40 py-4 bg-white shadow-bottom dark:bg-gray-800">
@@ -104,13 +103,23 @@ function Header() {
         <ul className="flex items-center flex-shrink-0 space-x-6">
           {/* <!-- Theme toggler --> */}
           <li className="flex">
-            <button
-              className="px-4 py-1 bg-blue-600 rounded-md text-white outline-none focus:ring-4 shadow-lg transform active:scale-x-75 transition-transform mx-5"
-              onClick={toggleMode}
-              aria-label="Toggle color mode"
+            {
+          connection ?
+          <button 
+            className="px-4 py-1 bg-blue-600 rounded-md text-white outline-none focus:ring-4 shadow-lg transform active:scale-x-75 transition-transform mx-5"
+            onClick={disconnectWallet}
             >
-              Connect
-            </button>
+              Disconnect wallet
+          </button>
+          :
+          <button
+          className="px-4 py-1 bg-blue-600 rounded-md text-white outline-none focus:ring-4 shadow-lg transform active:scale-x-75 transition-transform mx-5"
+           onClick={connectWallet}
+           >
+            Connect wallet
+          </button>
+        }
+           
             
           </li>
         </ul>

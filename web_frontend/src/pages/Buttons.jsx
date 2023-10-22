@@ -1,152 +1,174 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
-import { HeartIcon, EditIcon } from '../icons'
+import { HeartIcon, EditIcon, TrashIcon } from '../icons'
 
 import PageTitle from '../components/Typography/PageTitle'
 import SectionTitle from '../components/Typography/SectionTitle'
 import CTA from '../components/CTA'
-import { Button } from '@windmill/react-ui'
+import {
+   Table,
+   TableHeader,
+   TableCell,
+   TableBody,
+   TableRow,
+   TableFooter,
+   TableContainer,
+   Badge,
+   Avatar,
+   Button,
+   Pagination,
+  } from '@windmill/react-ui'
+
+  import response from '../utils/demo/tableData'
+  // make a copy of the data, for the second table
+  const response2 = response.concat([])
 
 function Buttons() {
+
+  
+  // setup pages control for every table
+  const [pageTable1, setPageTable1] = useState(1)
+  const [pageTable2, setPageTable2] = useState(1)
+
+  // setup data for every table
+  const [dataTable1, setDataTable1] = useState([])
+  const [dataTable2, setDataTable2] = useState([])
+
+  // pagination setup
+  const resultsPerPage = 10
+  const totalResults = response.length
+
+  // pagination change control
+  function onPageChangeTable1(p) {
+    setPageTable1(p)
+  }
+
+  // pagination change control
+  function onPageChangeTable2(p) {
+    setPageTable2(p)
+  }
+
+  // on page change, load new sliced data
+  // here you would make another server request for new data
+  useEffect(() => {
+    setDataTable1(response.slice((pageTable1 - 1) * resultsPerPage, pageTable1 * resultsPerPage))
+  }, [pageTable1])
+
+  // on page change, load new sliced data
+  // here you would make another server request for new data
+  useEffect(() => {
+    setDataTable2(response2.slice((pageTable2 - 1) * resultsPerPage, pageTable2 * resultsPerPage))
+  }, [pageTable2])
+
   return (
     <>
-      <PageTitle>Buttons</PageTitle>
+      <PageTitle>Withdraw or Transfer Save</PageTitle>
 
       <CTA />
 
-      <SectionTitle>Primary</SectionTitle>
-      <div className="flex flex-col flex-wrap mb-8 space-y-4 md:flex-row md:items-end md:space-x-4">
-        <div>
-          <Button size="larger">Larger Button</Button>
-        </div>
+      <SectionTitle>Simple table</SectionTitle>
+      <TableContainer className="mb-8">
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableCell>Client</TableCell>
+              <TableCell>Amount</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Date</TableCell>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {dataTable1.map((user, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <Avatar className="hidden mr-3 md:block" src={user.avatar} alt="User avatar" />
+                    <div>
+                      <p className="font-semibold">{user.name}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{user.job}</p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">$ {user.amount}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge type={user.status}>{user.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{new Date(user.date).toLocaleDateString()}</span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <TableFooter>
+          <Pagination
+            totalResults={totalResults}
+            resultsPerPage={resultsPerPage}
+            onChange={onPageChangeTable1}
+            label="Table navigation"
+          />
+        </TableFooter>
+      </TableContainer>
 
-        <div>
-          <Button size="large">Large Button</Button>
-        </div>
-
-        <div>
-          <Button>Regular</Button>
-        </div>
-
-        <div>
-          <Button tag={Link} to="/dashboard">
-            Router Link
-          </Button>
-        </div>
-
-        <div>
-          <Button disabled>Disabled</Button>
-        </div>
-
-        <div>
-          <Button size="small">Small</Button>
-        </div>
-      </div>
-
-      <SectionTitle>Outline</SectionTitle>
-      <div className="flex flex-col flex-wrap mb-8 space-y-4 md:flex-row md:items-end md:space-x-4">
-        <div>
-          <Button layout="outline" size="larger">
-            Larger Button
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="outline" size="large">
-            Large Button
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="outline">Regular</Button>
-        </div>
-
-        <div>
-          <Button layout="outline" tag={Link} to="/dashboard">
-            Router Link
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="outline" disabled>
-            Disabled
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="outline" size="small">
-            Small
-          </Button>
-        </div>
-      </div>
-
-      <SectionTitle>Link</SectionTitle>
-      <div className="flex flex-col flex-wrap mb-8 space-y-4 md:flex-row md:items-end md:space-x-4">
-        <div>
-          <Button layout="link" size="larger">
-            Larger Button
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="link" size="large">
-            Large Button
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="link">Regular</Button>
-        </div>
-
-        <div>
-          <Button layout="link" tag={Link} to="/dashboard">
-            Router Link
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="link" disabled>
-            Disabled
-          </Button>
-        </div>
-
-        <div>
-          <Button layout="link" size="small">
-            Small
-          </Button>
-        </div>
-      </div>
-
-      <SectionTitle>Icons</SectionTitle>
-      <div className="flex flex-col flex-wrap mb-8 space-y-4 md:flex-row md:items-end md:space-x-4">
-        <div>
-          <Button iconRight={HeartIcon}>
-            <span>Icon right</span>
-          </Button>
-        </div>
-
-        <div>
-          <Button iconLeft={HeartIcon}>
-            <span>Icon Left</span>
-          </Button>
-        </div>
-
-        <div>
-          <Button icon={HeartIcon} aria-label="Like" />
-        </div>
-
-        <div>
-          <Button icon={EditIcon} aria-label="Edit" />
-        </div>
-
-        <div>
-          <Button icon={HeartIcon} layout="link" aria-label="Like" />
-        </div>
-        <div>
-          <Button icon={HeartIcon} layout="outline" aria-label="Like" />
-        </div>
-      </div>
+      <SectionTitle>Table with actions</SectionTitle>
+      <TableContainer className="mb-8">
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableCell>Client</TableCell>
+              <TableCell>Amount</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Actions</TableCell>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {dataTable2.map((user, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <div className="flex items-center text-sm">
+                    <Avatar className="hidden mr-3 md:block" src={user.avatar} alt="User avatar" />
+                    <div>
+                      <p className="font-semibold">{user.name}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{user.job}</p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">$ {user.amount}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge type={user.status}>{user.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{new Date(user.date).toLocaleDateString()}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-4">
+                    <Button layout="link" size="icon" aria-label="Edit">
+                      <EditIcon className="w-5 h-5" aria-hidden="true" />
+                    </Button>
+                    <Button layout="link" size="icon" aria-label="Delete">
+                      <TrashIcon className="w-5 h-5" aria-hidden="true" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <TableFooter>
+          <Pagination
+            totalResults={totalResults}
+            resultsPerPage={resultsPerPage}
+            onChange={onPageChangeTable2}
+            label="Table navigation"
+          />
+        </TableFooter>
+      </TableContainer>
     </>
   )
 }
