@@ -1,5 +1,6 @@
 import React, { useContext, useState,useEffect } from 'react'
 import { SidebarContext } from '../context/SidebarContext'
+import { AkibaContext } from '../context/AkibaContext'
 import {
   SearchIcon,
   MoonIcon,
@@ -13,56 +14,16 @@ import {
 import { Avatar, Badge, Input, Dropdown, DropdownItem, WindmillContext,Button } from '@windmill/react-ui'
 import { connect, disconnect } from 'starknetkit'
 import { Contract, Provider,constants, provider } from 'starknet'
+import { formatAddress, formatChainAsNum } from "../utils/Index";
+
 
 function Header() {
   const { mode, toggleMode } = useContext(WindmillContext)
   const { toggleSidebar } = useContext(SidebarContext)
+  const {connectWallet,disconnectWallet,connection,account,address} = useContext(AkibaContext)
  
   const [isNotificationsMenuOpen, setIsNotificationsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-
-
-  const [connection, setConnection] = useState();
-  const [account, setAccount] = useState();
-  const [address, setAddress] = useState();
-
-  const [retrievedValue, setRetrievedValue] = useState('')
-
-  const connectWallet = async() => {
-    const connection = await connect({webWalletUrl:"https://web.argent.xyz"});
-
-    console.log(connection);
-
-    if (connection && connection.id !=="argentwallet" && connection.isConnected){
-      setConnection(connection);
-      setAccount(connection.account);
-      setAddress(connection.selectedAddress);
-
-    }
-
-    if (connection && connection.chainId !== "SN_MAIN"){
-      try{
-        await window.starknet.request({
-          type:"wallet_addStarknetChain",
-          params:{
-            chainId:"SN_MAIN"
-          }
-        })
-
-      }catch(error){
-        alert("Please manually switch your wallet network to mainnet");
-      }
-
-    }
-
-  }
-
-  const disconnectWallet = async() => {
-        await disconnect()
-        setConnection(undefined);
-        setAccount(undefined);
-        setAddress('');
-  }
 
 
   function handleNotificationsClick() {
@@ -74,6 +35,12 @@ function Header() {
     setIsProfileMenuOpen(!isProfileMenuOpen)
   }
 
+  
+  const handleConnect = () => {
+    connectWallet();
+  };
+
+  console.log('xxxxxxxxxxxxxx',address)
 
 
   return (
@@ -114,7 +81,7 @@ function Header() {
           :
           <button
           className="px-4 py-1 bg-blue-600 rounded-md text-white outline-none focus:ring-4 shadow-lg transform active:scale-x-75 transition-transform mx-5"
-           onClick={connectWallet}
+           onClick={handleConnect}
            >
             Connect wallet
           </button>

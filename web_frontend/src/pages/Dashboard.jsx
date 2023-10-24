@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect,useContext } from 'react'
 
 import CTA from '../components/CTA'
 import InfoCard from '../components/Cards/InfoCard'
@@ -28,10 +28,13 @@ import {
   doughnutLegends,
   lineLegends,
 } from '../utils/demo/chartsData'
+import { formatAddress, formatChainAsNum } from "../utils/Index";
+import { AkibaContext } from '../context/AkibaContext'
 
 function Dashboard() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState([])
+  const {address,connection} = useContext(AkibaContext)
 
   // pagination setup
   const resultsPerPage = 10
@@ -48,9 +51,13 @@ function Dashboard() {
     setData(response.slice((page - 1) * resultsPerPage, page * resultsPerPage))
   }, [page])
 
+  console.log('address',address)
+
   return (
     <>
-      <PageTitle>Dashboard</PageTitle>
+      <PageTitle>Dashboard 
+        
+        </PageTitle>
 
       <CTA />
 

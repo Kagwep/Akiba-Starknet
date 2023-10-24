@@ -1,9 +1,11 @@
-import React from 'react'
+import React,{useContext,useEffect,useState} from 'react'
 import routes from '../../routes/sidebar'
 import { NavLink, Route } from 'react-router-dom'
 import * as Icons from '../../icons'
 import SidebarSubmenu from './SidebarSubmenu'
 import { Button } from '@windmill/react-ui'
+import { formatAddress, formatChainAsNum } from "../../utils/Index";
+import { AkibaContext } from '../../context/AkibaContext'
 
 function Icon({ icon, ...props }) {
   const Icon = Icons[icon]
@@ -11,6 +13,27 @@ function Icon({ icon, ...props }) {
 }
 
 function SidebarContent() {
+
+  const {address,connection} = useContext(AkibaContext)
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyClick = () => {
+    if (connection) {
+      const textField = document.createElement('textarea');
+      textField.innerText = address;
+      document.body.appendChild(textField);
+      textField.select();
+      document.execCommand('copy');
+      document.body.removeChild(textField);
+        setIsCopied(true);
+
+      // Clear the copied notification after a few seconds (e.g., 3 seconds)
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 3000);
+    }
+  };
+
   return (
     <div className="py-4 text-gray-500 dark:text-gray-400">
       <a className="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200" href="#">
@@ -41,13 +64,17 @@ function SidebarContent() {
           )
         )}
       </ul>
-      <div className="px-6 my-6">
-        <Button>
-          Create account
-          <span className="ml-2" aria-hidden="true">
-            +
-          </span>
-        </Button>
+      {isCopied && (
+        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 py-2 px-2 mb-4" role="alert">
+          <p className="font-bold">Copied!</p>
+        </div>
+      )}
+      <div>
+        {connection && (
+          <div className='px-4 text-cyan-100' onClick={handleCopyClick} style={{ cursor: 'pointer' }}>
+            {formatAddress(address)}
+          </div>
+        )}
       </div>
     </div>
   )
