@@ -31,6 +31,11 @@ import {
 import { formatAddress, formatChainAsNum } from "../utils/Index";
 import { AkibaContext } from '../context/AkibaContext'
 
+import { Contract, Provider,constants, provider } from 'starknet'
+
+import akiba from '../abi/akiba.json'
+const contractAddress = "0x0124f234bcb029680e21f7de8222af6c20e108780069a56e168f0ee46faeca1c"
+
 function Dashboard() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState([])
