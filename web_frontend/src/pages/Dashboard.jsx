@@ -34,7 +34,8 @@ import { AkibaContext } from '../context/AkibaContext'
 import { Contract, Provider,constants, provider } from 'starknet'
 
 import akiba from '../abi/akiba.json'
-const contractAddress = "0x0124f234bcb029680e21f7de8222af6c20e108780069a56e168f0ee46faeca1c"
+const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
+
 
 function Dashboard() {
   const [page, setPage] = useState(1)
