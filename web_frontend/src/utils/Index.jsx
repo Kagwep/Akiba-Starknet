@@ -18,3 +18,25 @@ export const formatAddress = (addr) => {
     return `${firstPart}...${lastPart}`;
   };
   
+  export function feltToStr(felt) {
+    const feltStr = felt.toString(2); // Convert BigInt to binary string
+    const padLength = (feltStr.length % 8 !== 0) ? 8 - (feltStr.length % 8) : 0;
+    const paddedFeltStr = '0'.repeat(padLength) + feltStr;
+    const length = Math.ceil(paddedFeltStr.length / 8);
+    const bytes = new Uint8Array(length);
+  
+    for (let i = 0; i < length; i++) {
+      const byteStart = i * 8;
+      const byteEnd = byteStart + 8;
+      bytes[i] = parseInt(paddedFeltStr.slice(byteStart, byteEnd), 2);
+    }
+  
+    const decoder = new TextDecoder('utf-8');
+    return decoder.decode(bytes);
+  }
+
+  export const bigIntToHexString = (bigIntValue) => {
+    const hexString = bigIntValue.toString(16);
+    return "0x" + hexString;
+  };
+  
