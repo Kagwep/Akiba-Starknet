@@ -4,7 +4,7 @@ use akiba_starknet::contract::SaverContract::{Saver,Save,Reward,ContractAddress}
 #[starknet::interface]
 trait ISaverContract<TContractState> {
 
-    fn set_saver(ref self: TContractState, saver:Saver, key:ContractAddress);
+    fn set_saver(ref self: TContractState, total_saves_amount: u256, total_amount_earned: u256, key:ContractAddress);
     fn set_save(ref self: TContractState,save_amount: u256,save_earnings: u256,save_start:u256,save_end:u256,save_period:felt252);
     fn set_reward(ref self: TContractState,reward_uri:felt252,reward_type:felt252,recepient:ContractAddress);
     fn get_saver(self: @TContractState, key:ContractAddress) ->  Saver;
@@ -21,6 +21,10 @@ trait ISaverContract<TContractState> {
     fn transfer_earnings(ref self:TContractState, transfer_to:ContractAddress,amount:u256);
     fn withdraw_earnings(ref self:TContractState, amount:u256);
     fn request_save_transfer(ref self:TContractState, key:u256);
+    fn get_savers(self: @TContractState) -> Array<Saver>;
+    fn get_saves(self: @TContractState) -> Array<Save>;
+    fn get_rewards(self: @TContractState) -> Array<Reward>;
+    fn get_total_savers(self: @TContractState) -> u256;
 
 }
 
@@ -52,11 +56,13 @@ mod SaverContract {
         key_count:u256,
         transfer_count:u256,
         listed:LegacyMap::<ContractAddress, bool>,
+        savers_count:u256,
+        savers_list: LegacyMap::<u256, Saver>,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
     struct Saver {
-
+        saver_id:u256,
         address: ContractAddress,
         total_saves_amount : u256,
         total_amount_earned : u256,
@@ -101,6 +107,7 @@ mod SaverContract {
         self.token_id_count.write(0);
         self.key_count.write(0);
         self.transfer_count.write(0);
+        self.savers_count.write(0);
         
     }
 
@@ -119,11 +126,18 @@ mod SaverContract {
             ERC721::ERC721MetadataImpl::symbol(@unsafe_state)
             }
 
-        fn set_saver(ref self: ContractState,value:Saver,key:ContractAddress){
+        fn set_saver(ref self: ContractState, total_saves_amount: u256, total_amount_earned: u256,key:ContractAddress){
             let   caller_address = get_caller_address();
             let contract_owner = self.owner.read();
 
             assert(caller_address == contract_owner, 'CHECK REWARD');
+
+            let saver_id = self.savers_count.read() + 1;
+            self.savers_count.write(saver_id);
+            let value = Saver {
+                saver_id:saver_id,address: key, total_saves_amount: total_saves_amount, total_amount_earned: 0
+                };
+                
             self._set_saver(value,key);
         }
 
@@ -180,10 +194,12 @@ mod SaverContract {
                 saver.total_saves_amount += save_amount;
                 self._set_saver(saver,recepient);
             } else {
-
+                let saver_id = self.savers_count.read() + 1;
+                self.savers_count.write(saver_id);
                 let saver = Saver {
-                    address: recepient, total_saves_amount: save_amount, total_amount_earned: 0
+                    saver_id:saver_id,address: recepient, total_saves_amount: save_amount, total_amount_earned: 0
                     };
+
                 self._set_saver(saver,recepient);
                 self.is_saver.write(recepient,true);
             }
@@ -475,6 +491,67 @@ mod SaverContract {
             
         }
 
+        fn get_savers(self: @ContractState) -> Array<Saver>{
+
+            let savers_count_all = self.savers_count.read();
+            let mut savers_arr: Array<Saver> = ArrayTrait::new();
+
+                let mut i: u256 = 1;
+                loop {
+                    if i > savers_count_all {
+                        break;
+                    }
+                    let saver = self.savers_list.read(i);
+                    savers_arr.append(saver);
+                    i += 1;
+                };
+
+            savers_arr            
+
+        }
+
+        fn get_saves(self: @ContractState) -> Array<Save> {
+
+            let saves_count_all = self.save_id_count.read();
+            let mut saves_arr: Array<Save> = ArrayTrait::new();
+
+                let mut i: u256 = 1;
+                loop {
+                    if i > saves_count_all {
+                        break;
+                    }
+                    let save = self.saves.read(i);
+                    saves_arr.append(save);
+                    i += 1;
+                };
+
+            saves_arr            
+
+        }
+
+        fn get_rewards(self: @ContractState) -> Array<Reward> {
+
+            let rewards_count_all = self.rewards_id_count.read();
+            let mut rewards_arr: Array<Reward> = ArrayTrait::new();
+
+                let mut i: u256 = 1;
+                loop {
+                    if i > rewards_count_all {
+                        break;
+                    }
+                    let reward = self.rewards.read(i);
+                    rewards_arr.append(reward);
+                    i += 1;
+                };
+
+            rewards_arr            
+
+        }
+
+        fn get_total_savers(self: @ContractState) -> u256{
+            self.savers_count.read()
+        }
+
 
 
         fn get_save(self: @ContractState, key: u256) -> Save{
@@ -501,6 +578,7 @@ mod SaverContract {
         // @dev Internal function to generate hashes
         fn _set_saver(ref self: ContractState,value:Saver,key: ContractAddress){
             self.savers.write(key,value);
+            self.savers_list.write(value.saver_id,value);
         }
 
         fn _set_save(
@@ -611,9 +689,10 @@ mod SaverContract {
                     saver.total_saves_amount += savers_amount;
                     self._set_saver(saver,recepient);
                 } else {
-
+                    let saver_id = self.savers_count.read() + 1;
+                    self.savers_count.write(saver_id);
                     let saver = Saver {
-                        address: recepient, total_saves_amount: savers_amount, total_amount_earned: 0
+                        saver_id:saver_id,address: recepient, total_saves_amount: savers_amount, total_amount_earned: 0
                         };
                     self._set_saver(saver,recepient);
                     self.is_saver.write(recepient,true);
@@ -710,21 +789,25 @@ mod tests {
         let mut contract = deploy(name,symbol);
 
         let caller = get_caller_address();
-
-
+        
         let userContractAddress: ContractAddress =  contract_address_const::<0x00000>();
+        let userContractAddress_1: ContractAddress =  contract_address_const::<0x00001>();
 
 
-        let saver_instance = Saver {
-            address: userContractAddress,
-            total_saves_amount: 0, // Set an appropriate initial value for these fields
-            total_amount_earned: 0,
-        };
+        // let saver_instance = Saver {
+        //     address: userContractAddress,
+        //     total_saves_amount: 0, // Set an appropriate initial value for these fields
+        //     total_amount_earned: 0,
+        // };
+
+        let total_saves_amount: u256 = 0;
+        let total_amount_earned: u256 = 0;
 
         
 
         // hashed data key
-        contract.set_saver(saver_instance,userContractAddress);
+        contract.set_saver(total_saves_amount,total_amount_earned,userContractAddress);
+        contract.set_saver(total_saves_amount,total_amount_earned,userContractAddress_1);
 
 
         // Read the array.
@@ -736,7 +819,11 @@ mod tests {
 
 
         assert(akiba_symbol == 'AKB', 'Symbol of token');
-        assert(akiba_name == 'Akiba','Name of token')
+        assert(akiba_name == 'Akiba','Name of token');
+
+        let savers = contract.get_savers();
+
+        assert(savers.len() == 2, 'SAVERS');
 
 
     }
@@ -1103,6 +1190,8 @@ mod tests {
 
         let save = contract.get_save(1);
         assert(save.transfer_request == true, 'TRANSFER REQUEST');
+
+
 
     }
 }
