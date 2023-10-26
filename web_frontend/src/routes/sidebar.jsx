@@ -17,25 +17,21 @@ const routes = [
     name: 'Save',
   },
   {
+    path: 'tables',
+    icon: 'TablesIcon',
+    name: 'Saves',
+  },
+  {
     path: 'cards',
     icon: 'CardsIcon',
     name: 'Save Transfers',
-  },
-  {
-    path: 'buttons',
-    icon: 'ButtonsIcon',
-    name: 'Withdraw/Transfer',
   },
   {
     path: 'modals',
     icon: 'ModalsIcon',
     name: 'Rewards',
   },
-  {
-    path: 'tables',
-    icon: 'TablesIcon',
-    name: 'Savers',
-  },
+ 
   
 ]
 

@@ -40,3 +40,14 @@ export const formatAddress = (addr) => {
     return "0x" + hexString;
   };
   
+
+
+  export const convertToDateTime = (bigIntValue) => {
+    const date = new Date(Number(bigIntValue));
+    return date.toLocaleString();
+  };
+
+  export const convertToDays = (bigIntValue) => {
+  const days = Math.floor(Number(bigIntValue) / (1000 * 60 * 60 * 24));
+  return days;
+};

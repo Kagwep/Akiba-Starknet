@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-
+import React, { useState, useEffect,useContext } from 'react'
+import { feltToStr,formatAddress,bigIntToHexString,convertToDateTime,convertToDays} from '../utils/Index'
 import PageTitle from '../components/Typography/PageTitle'
 import SectionTitle from '../components/Typography/SectionTitle'
 import CTA from '../components/CTA'
@@ -20,9 +20,16 @@ import {
   Button,
   Pagination,
 } from '@windmill/react-ui'
-import { CartIcon, ChatIcon, MoneyIcon, PeopleIcon,EditIcon, TrashIcon } from '../icons'
+import { CartIcon, ChatIcon, MoneyIcon, PeopleIcon,EditIcon, TrashIcon,WithdrawIcon,TransferIcon } from '../icons'
+
 import RoundIcon from '../components/RoundIcon'
 import response from '../utils/demo/tableData'
+import { AkibaContext } from '../context/AkibaContext'
+
+import { Contract, Provider,constants, provider } from 'starknet'
+
+import akiba from '../abi/akiba.json'
+const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
 // make a copy of the data, for the second table
 const response2 = response.concat([])
 
@@ -35,6 +42,9 @@ function Cards() {
   // setup data for every table
   const [dataTable1, setDataTable1] = useState([])
   const [dataTable2, setDataTable2] = useState([])
+
+  const {address,connection} = useContext(AkibaContext)
+  const [saves, setSaves] = useState([])
 
   // pagination setup
   const resultsPerPage = 10
@@ -60,7 +70,35 @@ function Cards() {
   // here you would make another server request for new data
   useEffect(() => {
     setDataTable2(response2.slice((pageTable2 - 1) * resultsPerPage, pageTable2 * resultsPerPage))
+    getSaves();
   }, [pageTable2])
+
+
+  const getSaves = async() => {
+
+    const provider = new Provider({
+      sequencer: {
+        network: constants.NetworkName.SN_GOERLI
+      
+      }
+    })
+ 
+     try{
+
+        const contract = new Contract(akiba.abi,contractAddress,provider);
+        let akiba_saves = await contract.get_saves();
+        // Filter the saves array to include only items where transfer_request is true
+        const filteredSaves = akiba_saves.filter(save => save.transfer_request === true);
+
+        setSaves(filteredSaves);
+
+     } catch(error){
+        console.log("oops!",error)
+     }
+        
+  }
+
+  console.log('saves',saves);
 
   return (
     <>
@@ -71,7 +109,7 @@ function Cards() {
       <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
 
 
-        <InfoCard title="Total Transfers" value="$ 46,760.89">
+        <InfoCard title="Total Transfers" value={saves.length}>
           <RoundIcon
             icon={MoneyIcon}
             iconColorClass="text-green-500 dark:text-green-100"
@@ -108,99 +146,55 @@ function Cards() {
             <tr>
               <TableCell>Client</TableCell>
               <TableCell>Amount</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Date</TableCell>
+              <TableCell>From</TableCell>
+              <TableCell>To</TableCell>
+              <TableCell>Period (days)</TableCell>
+              <TableCell>Accept</TableCell>
+              
             </tr>
           </TableHeader>
           <TableBody>
-            {dataTable1.map((user, i) => (
-              <TableRow key={i}>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <Avatar className="hidden mr-3 md:block" src={user.avatar} alt="User avatar" />
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{user.job}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm">$ {user.amount}</span>
-                </TableCell>
-                <TableCell>
-                  <Badge type={user.status}>{user.status}</Badge>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm">{new Date(user.date).toLocaleDateString()}</span>
-                </TableCell>
-              </TableRow>
-            ))}
+            {saves.map((save, i) => (
+                    <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex items-center text-sm">
+                        <div>
+                          <p className="font-semibold text-cyan-100">{formatAddress(bigIntToHexString(save.saver_adress))}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm"> {save.save_amount.toString()}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{convertToDateTime(save.save_start)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{convertToDateTime(save.save_end)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{convertToDays(save.save_period)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-4">
+                        <Button layout="link" size="icon" aria-label="Edit">
+                          <WithdrawIcon className="w-5 h-5 text-green" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </TableCell>
+    
+                  </TableRow>
+                 
+              ))}
           </TableBody>
         </Table>
         <TableFooter>
-          <Pagination
-            totalResults={totalResults}
-            resultsPerPage={resultsPerPage}
-            onChange={onPageChangeTable1}
-            label="Table navigation"
-          />
-        </TableFooter>
-      </TableContainer>
-
-      <SectionTitle>Table with actions</SectionTitle>
-      <TableContainer className="mb-8">
-        <Table>
-          <TableHeader>
-            <tr>
-              <TableCell>Client</TableCell>
-              <TableCell>Amount</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Actions</TableCell>
-            </tr>
-          </TableHeader>
-          <TableBody>
-            {dataTable2.map((user, i) => (
-              <TableRow key={i}>
-                <TableCell>
-                  <div className="flex items-center text-sm">
-                    <Avatar className="hidden mr-3 md:block" src={user.avatar} alt="User avatar" />
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{user.job}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm">$ {user.amount}</span>
-                </TableCell>
-                <TableCell>
-                  <Badge type={user.status}>{user.status}</Badge>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm">{new Date(user.date).toLocaleDateString()}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-4">
-                    <Button layout="link" size="icon" aria-label="Edit">
-                      <EditIcon className="w-5 h-5" aria-hidden="true" />
-                    </Button>
-                    <Button layout="link" size="icon" aria-label="Delete">
-                      <TrashIcon className="w-5 h-5" aria-hidden="true" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <TableFooter>
-          <Pagination
+          {/* <Pagination
             totalResults={totalResults}
             resultsPerPage={resultsPerPage}
             onChange={onPageChangeTable2}
             label="Table navigation"
-          />
+          /> */}
         </TableFooter>
       </TableContainer>
     </>

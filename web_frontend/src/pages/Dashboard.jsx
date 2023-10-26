@@ -267,12 +267,12 @@ function Dashboard() {
           </TableBody>
         </Table>
         <TableFooter>
-          <Pagination
+          {/* <Pagination
             totalResults={totalResults}
             resultsPerPage={resultsPerPage}
             label="Table navigation"
             onChange={onPageChange}
-          />
+          /> */}
         </TableFooter>
       </TableContainer>
     </>
