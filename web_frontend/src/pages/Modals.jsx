@@ -72,7 +72,7 @@ function Modals() {
 
   return (
     <>
-      <PageTitle>Rewards</PageTitle>
+      <PageTitle>Rewards </PageTitle>
       <CTA />
 
       <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
