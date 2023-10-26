@@ -28,6 +28,7 @@ import { ReactComponent as OutlineCogIcon } from './outlineCog.svg'
 import { ReactComponent as OutlineLogoutIcon } from './outlineLogout.svg'
 import { ReactComponent as WithdrawIcon } from './withdraw.svg'
 import { ReactComponent as TransferIcon } from './transfer.svg'
+import { ReactComponent as CheckIcon } from './check.svg'
 
 export {
   ButtonsIcon,
@@ -60,4 +61,5 @@ export {
   OutlineLogoutIcon,
   WithdrawIcon,
   TransferIcon,
+  CheckIcon,
 }

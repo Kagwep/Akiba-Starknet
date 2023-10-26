@@ -6,6 +6,11 @@ import SidebarSubmenu from './SidebarSubmenu'
 import { Button } from '@windmill/react-ui'
 import { formatAddress, formatChainAsNum } from "../../utils/Index";
 import { AkibaContext } from '../../context/AkibaContext'
+import { Contract, Provider,constants, provider } from 'starknet'
+
+import akiba from '../../abi/akiba.json'
+const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
+
 
 function Icon({ icon, ...props }) {
   const Icon = Icons[icon]
@@ -16,6 +21,12 @@ function SidebarContent() {
 
   const {address,connection} = useContext(AkibaContext)
   const [isCopied, setIsCopied] = useState(false);
+  const [saver, setSaver] = useState([]);
+
+
+  useEffect(() => {
+    getSaver();
+  }, [])
 
   const handleCopyClick = () => {
     if (connection) {
@@ -33,6 +44,30 @@ function SidebarContent() {
       }, 3000);
     }
   };
+
+  const getSaver = async() => {
+
+    const provider = new Provider({
+      sequencer: {
+        network: constants.NetworkName.SN_GOERLI
+      
+      }
+    })
+ 
+     try{
+        const contract = new Contract(akiba.abi,contractAddress,provider);
+        let akiba_saver = await contract.get_saver(address);
+        setSaver(akiba_saver);
+        // console.log('sdsfsds',akiba_earnings);
+        
+     } catch(error){
+        console.log("oops!",error)
+     }
+        
+  }
+
+
+  console.log('adsf',Number(saver.total_amount_earned).toString())
 
   return (
     <div className="py-4 text-gray-500 dark:text-gray-400">
@@ -76,6 +111,11 @@ function SidebarContent() {
           </div>
         )}
       </div>
+      <div>
+        {connection && (
+          <p className='px-4 py-2 text-sm text-gray-50'> Earnings: <span className='text-cyan-100'> {Number(saver.total_amount_earned).toString()} </span> </p>
+        )}
+        </div>
     </div>
   )
 }

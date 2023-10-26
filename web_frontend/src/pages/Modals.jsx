@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState,useContext,useEffect } from 'react'
 
 import PageTitle from '../components/Typography/PageTitle'
 import InfoCard from '../components/Cards/InfoCard'
@@ -6,11 +6,29 @@ import CTA from '../components/CTA'
 import RoundIcon from '../components/RoundIcon'
 import { Modal, ModalHeader, ModalBody, ModalFooter, Button ,
   Card,
-  CardBody, } from '@windmill/react-ui'
-  import { MoneyIcon } from '../icons'
+  CardBody,
+  Table,
+  TableHeader,
+  TableCell,
+  TableBody,
+  TableRow,
+  TableFooter,
+  TableContainer,
+} from '@windmill/react-ui'
+  import { MoneyIcon,CheckIcon } from '../icons'
+
+  import { AkibaContext } from '../context/AkibaContext'
+
+  import { Contract, Provider,constants, provider } from 'starknet'
+  
+  import akiba from '../abi/akiba.json'
+  const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
+  
 
 function Modals() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const {address,connection} = useContext(AkibaContext)
+  const [rewards, setRewards] = useState([])
 
   function openModal() {
     setIsModalOpen(true)
@@ -20,6 +38,38 @@ function Modals() {
     setIsModalOpen(false)
   }
 
+    // on page change, load new sliced data
+  // here you would make another server request for new data
+  useEffect(() => {
+    getRewards();
+  }, [])
+
+  
+  const getRewards = async() => {
+
+    const provider = new Provider({
+      sequencer: {
+        network: constants.NetworkName.SN_GOERLI
+      
+      }
+    })
+ 
+     try{
+
+        const contract = new Contract(akiba.abi,contractAddress,provider);
+        let akiba_rewards = await contract.get_rewards();
+        // Filter the saves array to include only items where transfer_request is true
+        const filteredRewards = akiba_rewards.filter(reward => reward.rewarded_user === address);
+
+        setRewards(filteredRewards);
+
+     } catch(error){
+        console.log("oops!",error)
+     }
+        
+  }
+
+
   return (
     <>
       <PageTitle>Rewards</PageTitle>
@@ -28,7 +78,7 @@ function Modals() {
       <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
 
 
-        <InfoCard title="Total Rewards" value="$ 46,760.89">
+        <InfoCard title="Total Rewards" value={rewards.length}>
           <RoundIcon
             icon={MoneyIcon}
             iconColorClass="text-green-500 dark:text-green-100"
@@ -58,6 +108,51 @@ function Modals() {
           </CardBody>
         </Card>
       </div>
+
+      <TableContainer className="mb-8">
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableCell>ID</TableCell>
+              <TableCell>Reward Type</TableCell>
+              <TableCell>Reedemed</TableCell>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {rewards.map((reward, i) => (
+
+              <TableRow key={i}>
+              <TableCell>
+                <div className="flex items-center text-sm">
+                  <div>
+                    <p className="font-semibold text-cyan-100">{reward.reward_id}</p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm"> {reward.reward_type}</span>
+              </TableCell>
+              <TableCell>
+              {reward.redeemed && (
+                <CheckIcon className="w-5 h-5 text-green" aria-hidden="true" />
+              )}
+              </TableCell>
+
+
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <TableFooter>
+          {/* <Pagination
+            totalResults={totalResults}
+            resultsPerPage={resultsPerPage}
+            onChange={onPageChangeTable2}
+            label="Table navigation"
+          /> */}
+        </TableFooter>
+      </TableContainer>
+
     </>
   )
 }

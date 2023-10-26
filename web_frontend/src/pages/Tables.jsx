@@ -46,8 +46,9 @@ function Tables() {
   // setup data for every table
   const [dataTable1, setDataTable1] = useState([])
   const [dataTable2, setDataTable2] = useState([])
-  const {address,connection} = useContext(AkibaContext)
-  const [saves, setSaves] = useState([])
+  const {address,connection,account} = useContext(AkibaContext)
+  const [saves, setSaves] = useState([]);
+  const [isTransferSuccessful, setIsTransferSuccessful] = useState(false);
 
   // pagination setup
   const resultsPerPage = 10
@@ -88,7 +89,8 @@ function Tables() {
      try{
         const contract = new Contract(akiba.abi,contractAddress,provider);
         let akiba_saves = await contract.get_saves();
-        setSaves(akiba_saves);
+        const filteredSaves = akiba_saves.filter(save => save.transfer_request === false);
+        setSaves(filteredSaves);
      } catch(error){
         console.log("oops!",error)
      }
@@ -97,10 +99,25 @@ function Tables() {
 
   console.log('saves',saves);
 
+  const handleTransferRequest = async (id) => {
+    try{
+      const contract = new Contract(akiba.abi,contractAddress,account);
+      await contract.request_save_transfer(id);
+      console.log('done');
+      setIsTransferSuccessful(true);
+    }catch(error){
+      console.log(error)
+    }
+  };
+
   return (
     <>
       <PageTitle>Saves</PageTitle>
-
+      {isTransferSuccessful && (
+        <div className="bg-green-500 text-white p-4 mb-4">
+          Transfer request successful! Check in transfer requests.
+        </div>
+      )}
 
       <CTA />
 
@@ -152,7 +169,7 @@ function Tables() {
     
                     <TableCell>
                       <div className="flex items-center space-x-4">
-                        <Button layout="link" size="icon" aria-label="Delete">
+                        <Button layout="link" size="icon" aria-label="Delete" onClick={() => handleTransferRequest(save.save_id)}>
                           <TransferIcon className="w-5 h-5" aria-hidden="true" />
                         </Button>
                       </div>
