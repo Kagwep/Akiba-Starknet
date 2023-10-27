@@ -42,17 +42,6 @@ Akiba Starknet is a  savings platform that transforms traditional saving methods
 4. **Penalties and Rewards:** Users who withdraw early incur penalties, which are shared with committed savers.
 5. **Redemption:** At the end of the savings plan, users can exchange their NFTs for the saved amount minus any penalties incurred.
 
-
-
-### Revenue Model
-
-We generate revenue through transaction fees when users exchange their NFTs for savings. Additionally, a portion of penalties collected from defaulters contributes to our revenue.
-
-
-### User Support
-
-User support and educational resources to help users understand and make the most of Akiba Starknet will be provided.
-
 ### Future Improvements
 
  Future updates may include enhanced features, improved security, and expanded investment options.
