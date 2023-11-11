@@ -345,6 +345,7 @@ mod SaverContract {
 
 
                 save_to_transfer.saver_adress = recepient;
+                save_to_transfer.transfer_request = false;
 
                 self.saves.write(save_key,save_to_transfer);
 
@@ -702,6 +703,8 @@ mod SaverContract {
                 //perform a transfer
                 save_to_withdraw_or_transfer.save_amount = savers_amount;
                 save_to_withdraw_or_transfer.saver_adress = recepient;
+                save_to_withdraw_or_transfer.transfer_request = false;
+
                 self.saves.write(save_key,save_to_withdraw_or_transfer);
                 let mut unsafe_state = ERC721::unsafe_new_contract_state();
                 ERC721::ERC721Impl::transfer_from(ref unsafe_state,from,recepient,save_to_withdraw_or_transfer.token_id);
