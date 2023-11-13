@@ -3,12 +3,12 @@
   "variant": {
     "type": "argent",
     "version": 1,
-    "owner": "0xd54d58375f629a4a166254195307d94ffeb809e7876ead60d5b744e38a0018",
+    "owner": "0xdfc3bd0a0cd9b9ee721f1ebd3471d282048985dcafaf59e7cdbcd0c992543c",
     "guardian": "0x0"
   },
   "deployment": {
     "status": "deployed",
     "class_hash": "0x1a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003",
-    "address": "0x5c04ccd1e209368f4b0a06801441ebf96d657f6b40eb3747aa0c1c432a4e861"
+    "address": "0x6561657b0b15308f28daa43d7a10f6d9896960b8fc1d023cde7ba6f111a208c"
   }
 }

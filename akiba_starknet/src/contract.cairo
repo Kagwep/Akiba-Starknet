@@ -21,10 +21,12 @@ trait ISaverContract<TContractState> {
     fn transfer_earnings(ref self:TContractState, transfer_to:ContractAddress,amount:u256);
     fn withdraw_earnings(ref self:TContractState, amount:u256);
     fn request_save_transfer(ref self:TContractState, key:u256);
+    fn request_accept_transfer(ref self:TContractState, key:u256);
     fn get_savers(self: @TContractState) -> Array<Saver>;
     fn get_saves(self: @TContractState) -> Array<Save>;
     fn get_rewards(self: @TContractState) -> Array<Reward>;
     fn get_total_savers(self: @TContractState) -> u256;
+    fn accept_transfer(ref self:TContractState, key:ContractAddress);
 
 }
 
@@ -58,6 +60,8 @@ mod SaverContract {
         listed:LegacyMap::<ContractAddress, bool>,
         savers_count:u256,
         savers_list: LegacyMap::<u256, Saver>,
+        transfer_intrests:LegacyMap::<ContractAddress, u256>,
+        transfer_approved:LegacyMap::<u256, ContractAddress>,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -321,8 +325,6 @@ mod SaverContract {
 
             let mut from = get_caller_address();
 
-            
-
             // let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
 
             // from = userContractAddress;
@@ -333,6 +335,10 @@ mod SaverContract {
             
             assert(from == save_owner,'Error: WRONG_REQUESTER');
 
+            let check_transfer_approval_address = self.transfer_approved.read(save_key);
+
+            assert(recepient == check_transfer_approval_address,'Error: Not Approved');
+
             let save_end_date = save_to_transfer.save_end;
 
             if save_end_date < end_date {
@@ -340,8 +346,6 @@ mod SaverContract {
                 // petrform a transfer
                 withdrawing_saver.total_saves_amount -= save_to_transfer.save_amount;
                 self._set_saver(withdrawing_saver,recepient);
-
-
 
 
                 save_to_transfer.saver_adress = recepient;
@@ -486,6 +490,48 @@ mod SaverContract {
             }
         }
 
+        fn request_accept_transfer(ref self:ContractState, key:u256){
+            let mut caller_address = get_caller_address();
+
+            // let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+            // caller_address = userContractAddress;
+            
+            let is_caller_saver = self._is_user_saver(caller_address);
+
+            if is_caller_saver {
+                self.transfer_intrests.write(caller_address,key);
+            }else{
+                let saver_id = self.savers_count.read() + 1;
+                self.savers_count.write(saver_id);
+                let saver = Saver {
+                    saver_id:saver_id,address: caller_address, total_saves_amount: 0, total_amount_earned: 0
+                    };
+
+                self._set_saver(saver,caller_address);
+                self.is_saver.write(caller_address,true);
+
+                self.transfer_intrests.write(caller_address,key);
+            }
+        }
+
+
+        fn accept_transfer(ref self:ContractState, key:ContractAddress){
+            let mut caller_address = get_caller_address();
+
+            // let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
+
+            // caller_address = userContractAddress;
+            assert(caller_address == save.saver_adress, 'Not Owner');
+
+            let save_id = self.transfer_intrests.read(key);
+
+  
+            self.transfer_approved.write(save_id,key);
+           
+
+        }
+
         fn get_saver(self: @ContractState, key: ContractAddress) -> Saver {
             let saver = self.savers.read(key);
             saver
@@ -595,6 +641,9 @@ mod SaverContract {
             save_period:felt252,
            
             ){
+
+            assert(save_amount > 0 , 'SAVERS AMOUNT');
+
             let save = Save{
                 save_id:save_id,
                 saver_adress:saver_adress,
@@ -669,7 +718,8 @@ mod SaverContract {
             }
 
             let savers_amount = save_to_withdraw_or_transfer.save_amount - penalty_amount;
-            self.akibas_earnings.write(penalty_amount);
+            let amount = self.akibas_earnings.read() + penalty_amount;
+            self.akibas_earnings.write(amount);
 
 
             if is_transfer {

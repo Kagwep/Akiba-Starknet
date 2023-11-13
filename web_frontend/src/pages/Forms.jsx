@@ -16,7 +16,7 @@ import { Contract, Provider,constants, provider } from 'starknet'
 import { AkibaContext } from '../context/AkibaContext'
 
 import akiba from '../abi/akiba.json'
-const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
+const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df9586774a463d2"
 
 
 
@@ -57,19 +57,28 @@ function Forms() {
 
       const save_amount_int = parseInt(formData.save_amount, 10); // Convert to integer
 
+      console.log("The values from front end",save_amount_int, save_earnings, save_start, saveEndMillis, save_period);
+
+
+
       try{
+        
+        console.log("This is the account",account);
         const contract = new Contract(akiba.abi,contractAddress,account);
         await contract.set_save(save_amount_int, save_earnings, save_start, saveEndMillis, save_period);
         console.log('done');
+
+        setFormData({
+          save_amount: 0,
+          save_end: '',
+        });
+        
       }catch(error){
-        console.log(error)
+        console.log(error);
       }
 
       // Reset the form or take any other desired action
-      setFormData({
-        save_amount: 0,
-        save_end: '',
-      });
+
     };
 
     const handleChange = (e) => {

@@ -29,7 +29,7 @@ import { AkibaContext } from '../context/AkibaContext'
 import { Contract, Provider,constants, provider } from 'starknet'
 
 import akiba from '../abi/akiba.json'
-const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
+const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df9586774a463d2"
 // make a copy of the data, for the second table
 const response2 = response.concat([])
 
@@ -119,6 +119,11 @@ function Cards() {
 
     const todays_date = Date.now();
 
+     console.log(result)
+     console.log(address)
+     console.log(todays_date);
+     console.log(id)
+
     try{
       const contract = new Contract(akiba.abi,contractAddress,account);
       await contract.transfer_save(id,todays_date,address,result);
@@ -159,7 +164,7 @@ function Cards() {
 
       {isTransferRequestSuccessful && (
         <div className="bg-green-500 text-white p-4 mb-4 text-zinc-50">
-          Withdraw request successful! 
+          Transfer request successful! 
         </div>
       )}
 

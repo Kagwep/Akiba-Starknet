@@ -25,7 +25,7 @@ import { AkibaContext } from '../context/AkibaContext'
 import { Contract, Provider,constants, provider } from 'starknet'
 
 import akiba from '../abi/akiba.json'
-const contractAddress = "0x0023ff8e48fd701cb160cfd09e83d9d4cfa8895791b116cb52e59ef3af519884"
+const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df9586774a463d2"
 
 // make a copy of the data, for the second table
 const response2 = response.concat([])
@@ -92,7 +92,8 @@ function Tables() {
      try{
         const contract = new Contract(akiba.abi,contractAddress,provider);
         let akiba_saves = await contract.get_saves();
-        const filteredSaves = akiba_saves.filter(save => save.transfer_request === false && save.save_active === true);
+        console.log(akiba_saves);
+        const filteredSaves = akiba_saves.filter(save => save.transfer_request === false && save.save_active);
         setSaves(filteredSaves);
      } catch(error){
         console.log("oops!",error)
@@ -196,6 +197,7 @@ function Tables() {
           <TableBody>
             {saves.map((save, i) => {
                 if (bigIntToHexString(save.saver_adress) === address) {
+                  console.log("here is the address",bigIntToHexString(save.saver_adress))
                   return (
                     <TableRow key={i}>
                     <TableCell>
