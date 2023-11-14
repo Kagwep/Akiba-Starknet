@@ -91,7 +91,7 @@ function Cards() {
         const contract = new Contract(akiba.abi,contractAddress,provider);
         let akiba_saves = await contract.get_saves();
         // Filter the saves array to include only items where transfer_request is true
-        const filteredSaves = akiba_saves.filter(save => save.transfer_request === true);
+        const filteredSaves = akiba_saves.filter(save => save.transfer_request === true && save.active);
 
         setSaves(filteredSaves);
 
@@ -100,6 +100,7 @@ function Cards() {
      }
         
   }
+
 
   console.log('saves',saves);
   

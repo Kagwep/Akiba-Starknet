@@ -522,10 +522,12 @@ mod SaverContract {
             // let userContractAddress: ContractAddress =  contract_address_const::<0x00001>();
 
             // caller_address = userContractAddress;
-            assert(caller_address == save.saver_adress, 'Not Owner');
 
             let save_id = self.transfer_intrests.read(key);
 
+            let save = self.saves.read(save_id);
+            
+            assert(caller_address == save.saver_adress, 'Not Owner');
   
             self.transfer_approved.write(save_id,key);
            
