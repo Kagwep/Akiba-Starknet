@@ -227,7 +227,7 @@ function Dashboard() {
           />
         </InfoCard>
 
-        <InfoCard title="Active Saves" value="35">
+        <InfoCard title="Active Saves" value={total_savers.toString()}>
           <RoundIcon
             icon={ChatIcon}
             iconColorClass="text-teal-500 dark:text-teal-100"

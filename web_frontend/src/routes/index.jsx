@@ -2,12 +2,12 @@ import { lazy } from 'react'
 
 // use lazy for better code splitting, a.k.a. load faster
 const Dashboard = lazy(() => import('../pages/Dashboard'))
-const Forms = lazy(() => import('../pages/Forms'))
-const Cards = lazy(() => import('../pages/Cards'))
+const Save = lazy(() => import('../pages/Save'))
+const Transfers = lazy(() => import('../pages/Transfers'))
 const Charts = lazy(() => import('../pages/Charts'))
 const Buttons = lazy(() => import('../pages/Buttons'))
-const Modals = lazy(() => import('../pages/Modals'))
-const Tables = lazy(() => import('../pages/Tables'))
+const Rewards = lazy(() => import('../pages/Rewards'))
+const Saves = lazy(() => import('../pages/Saves'))
 const Page404 = lazy(() => import('../pages/404'))
 const Blank = lazy(() => import('../pages/Blank'))
 
@@ -27,12 +27,12 @@ const routes = [
     component: Dashboard, // view rendered
   },
   {
-    path: 'forms',
-    component: Forms,
+    path: 'save',
+    component: Save,
   },
   {
-    path: 'cards',
-    component: Cards,
+    path: 'transfers',
+    component: Transfers,
   },
   {
     path: 'charts',
@@ -43,12 +43,12 @@ const routes = [
     component: Buttons,
   },
   {
-    path: 'modals',
-    component: Modals,
+    path: 'rewards',
+    component: Rewards,
   },
   {
-    path: 'tables',
-    component: Tables,
+    path: 'saves',
+    component: Saves,
   },
   {
     path: '404',

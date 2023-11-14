@@ -20,7 +20,7 @@ const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df95
 
 
 
-function Forms() {
+function Save() {
 
   const {address,connection,account} = useContext(AkibaContext)
 
@@ -190,4 +190,4 @@ function Forms() {
   )
 }
 
-export default Forms
+export default Save

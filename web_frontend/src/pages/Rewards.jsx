@@ -25,7 +25,7 @@ import { Modal, ModalHeader, ModalBody, ModalFooter, Button ,
   const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df9586774a463d2"
   
 
-function Modals() {
+function Rewards() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const {address,connection} = useContext(AkibaContext)
   const [rewards, setRewards] = useState([])
@@ -157,4 +157,4 @@ function Modals() {
   )
 }
 
-export default Modals
+export default Rewards

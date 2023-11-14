@@ -33,7 +33,7 @@ const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df95
 // make a copy of the data, for the second table
 const response2 = response.concat([])
 
-function Cards() {
+function Transfers() {
 
 
   const [pageTable1, setPageTable1] = useState(1)
@@ -42,11 +42,13 @@ function Cards() {
   // setup data for every table
   const [dataTable1, setDataTable1] = useState([])
   const [dataTable2, setDataTable2] = useState([])
+  const [showModal, setShowModal] = useState(false);
 
   const {address,connection,account} = useContext(AkibaContext)
   const [saves, setSaves] = useState([])
   const [isTransferRequestSuccessful, setIsTransferRequestSuccessful] = useState(false);
   const [rewards, setRewards] = useState([]);
+  const [save_id, setSaveId] = useState(0);
 
   // pagination setup
   const resultsPerPage = 10
@@ -77,6 +79,14 @@ function Cards() {
   }, [pageTable2])
 
 
+  const [formData, setFormData] = useState({
+    transfer_to: '',
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const getSaves = async() => {
 
     const provider = new Provider({
@@ -91,7 +101,7 @@ function Cards() {
         const contract = new Contract(akiba.abi,contractAddress,provider);
         let akiba_saves = await contract.get_saves();
         // Filter the saves array to include only items where transfer_request is true
-        const filteredSaves = akiba_saves.filter(save => save.transfer_request === true && save.save_active);
+        const filteredSaves = akiba_saves.filter(save => save.transfer_request === true && save.save_active && bigIntToHexString(save.saver_adress) == address);
 
         setSaves(filteredSaves);
 
@@ -105,7 +115,7 @@ function Cards() {
   console.log('saves',saves);
   
 
-  const handleTransferAcceptRequest = async (id) => {
+  const handleTransferAcceptRequest = async () => {
      
     function findRewardId(rewards) {
       for (let i = 0; i < rewards.length; i++) {
@@ -123,13 +133,17 @@ function Cards() {
      console.log(result)
      console.log(address)
      console.log(todays_date);
-     console.log(id)
+  
+
+     const { transfer_to} = formData;
 
     try{
       const contract = new Contract(akiba.abi,contractAddress,account);
-      await contract.transfer_save(id,todays_date,address,result);
+      await contract.transfer_save(save_id,todays_date,transfer_to,result);
       console.log('done');
+      setShowModal(false);
       setIsTransferRequestSuccessful(true);
+      
     }catch(error){
       console.log(error)
     }
@@ -178,8 +192,8 @@ function Cards() {
         <InfoCard title="Total Transfers" value={saves.length}>
           <RoundIcon
             icon={MoneyIcon}
-            iconColorClass="text-green-500 dark:text-green-100"
-            bgColorClass="bg-green-100 dark:bg-green-500"
+            iconColorclassNameName="text-green-500 dark:text-green-100"
+            bgColorclassNameName="bg-green-100 dark:bg-green-500"
             className="mr-4"
           />
         </InfoCard>
@@ -215,7 +229,7 @@ function Cards() {
               <TableCell>From</TableCell>
               <TableCell>To</TableCell>
               <TableCell>Period (days)</TableCell>
-              <TableCell>Accept</TableCell>
+              <TableCell>Transfer</TableCell>
               
             </tr>
           </TableHeader>
@@ -243,7 +257,15 @@ function Cards() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-4">
-                        <Button layout="link" size="icon" aria-label="Edit" onClick={() => handleTransferAcceptRequest(save.save_id)}>
+                        <Button 
+                        layout="link"
+                        size="icon" 
+                        aria-label="Edit" 
+                        onClick={() => {
+                          setShowModal(true);
+                          setSaveId(save.save_id);
+                        }}
+                        >
                           <WithdrawIcon className="w-5 h-5 text-green" aria-hidden="true" />
                         </Button>
                       </div>
@@ -263,8 +285,59 @@ function Cards() {
           /> */}
         </TableFooter>
       </TableContainer>
+      {showModal ? (
+        <>
+          <div className="flex justify-center items-center overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
+            <div className="relative w-auto my-6 mx-auto max-w-3xl">
+              <div className="border-0 bg-slate-700 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
+                <div className="flex  items-start justify-between p-5 border-b border-solid border-gray-300 rounded-t ">
+                  <h3 className="text-3xl font=semibold text-white">Transfer</h3>
+
+                </div>
+                <div className="relative p-6 flex-auto">
+                  <small className='p-1 py-2 text-red-500'> Confirm address - transfer is not reversable</small>
+                  <form className="bg-gray-200 shadow-md rounded px-8 pt-6 pb-8 w-full">
+                    <label className="block text-black text-sm font-bold mb-1">
+                      Transfer to
+                    </label>
+                    <input 
+                    type="text"
+                    name="transfer_to"
+                    placeholder='address'
+                    id="transfer_to"
+                    value={formData.transfer_to}
+                    onChange={handleChange}
+                    className="bg-gray-100 border border-gray-200 rounded py-1 px-3 block focus:ring-blue-500 focus:border-blue-500 text-gray-700 w-full"
+                    />
+
+                  </form>
+                </div>
+                <div className="flex items-center justify-end p-6 border-t border-solid border-blueGray-200 rounded-b">
+                  <button
+                    className="text-red-500 background-transparent font-bold uppercase px-6 py-2 text-sm outline-none focus:outline-none mr-1 mb-1"
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false);
+                      setSaveId(0);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600 active:bg-blue-700 disabled:opacity-50"
+                    type="button"
+                    onClick={() => handleTransferAcceptRequest()}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </>
   )
 }
 
-export default Cards
+export default Transfers

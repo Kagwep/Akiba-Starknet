@@ -12,22 +12,22 @@ const routes = [
     name: 'Dashboard', // name that appear in Sidebar
   },
   {
-    path: 'forms',
+    path: 'save',
     icon: 'FormsIcon',
     name: 'Save',
   },
   {
-    path: 'tables',
+    path: 'saves',
     icon: 'TablesIcon',
     name: 'Saves',
   },
   {
-    path: 'cards',
+    path: 'transfers',
     icon: 'CardsIcon',
     name: 'Save Transfers',
   },
   {
-    path: 'modals',
+    path: 'rewards',
     icon: 'ModalsIcon',
     name: 'Rewards',
   },

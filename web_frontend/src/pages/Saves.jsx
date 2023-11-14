@@ -30,7 +30,7 @@ const contractAddress = "0x071e1b905deb89bdb6e5d59040e4c604356485815d76f2122df95
 // make a copy of the data, for the second table
 const response2 = response.concat([])
 
-function Tables() {
+function Saves() {
   /**
    * DISCLAIMER: This code could be badly improved, but for the sake of the example
    * and readability, all the logic for both table are here.
@@ -260,4 +260,4 @@ function Tables() {
   )
 }
 
-export default Tables
+export default Saves
